@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import SettingsApp from '@/features/settings/SettingsApp.vue';
+import App from './App.vue';
 import '@/shared/theme/tailwind.css';
 
-createApp(SettingsApp).mount('#app');
+createApp(App).mount('#app');
