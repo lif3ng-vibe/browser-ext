@@ -17,10 +17,12 @@
     "lint:tokens": "stylelint \"src/**/*.css\""
   },
   "dependencies": {
+    "@codemirror/lang-css": "^6.3.1",
     "@lucide/vue": "^1.38.0",
     "@vueuse/core": "^14.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "codemirror": "^6.0.2",
     "reka-ui": "^2.10.4",
     "shadcn-vue": "^2.8.2",
     "tailwind-merge": "^3.6.0",
