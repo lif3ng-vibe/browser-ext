@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import PopupStyleToggle from '@/features/custom-styles/components/PopupStyleToggle.vue';
 import ThemeQuickSwitch from '@/features/settings/components/ThemeQuickSwitch.vue';
 import { Button } from '@/shared/ui/button';
 import { Settings } from '@lucide/vue';
@@ -25,6 +26,8 @@ async function openSettings() {
     </header>
 
     <ThemeQuickSwitch />
+
+    <PopupStyleToggle />
 
     <p class="text-muted-foreground mt-3 text-xs">
       完整设置在「打开设置」里。
