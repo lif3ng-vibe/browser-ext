@@ -15,6 +15,14 @@ export default tseslint.config(
     },
   },
   {
+    // shadcn-vue 复制组件(Button/Card/...):上游命名约定,不归我们改
+    files: ['src/shared/ui/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+      'vue/require-default-prop': 'off',
+    },
+  },
+  {
     languageOptions: {
       globals: { ...globals.browser },
     },

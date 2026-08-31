@@ -1,0 +1,38 @@
+/*
+ * 语义 token 唯一真源(CSS 侧)。
+ * 规则见 docs/ui.md:变量一律 --lif3ng- 前缀;UI 只准消费语义 utility(bg-primary 等),
+ * 禁止原子色与 hex/oklch 字面量进组件。
+ *
+ * T1 阶段:仅 :root 占位组(shadcn-vue 默认 light 值)供底座冒烟。
+ * 完整四主题块(light/dark/vercel-light/vercel-dark)在 T2(#8)落地。
+ */
+:root {
+  --lif3ng-background: oklch(1 0 0);
+  --lif3ng-foreground: oklch(0.145 0 0);
+  --lif3ng-card: oklch(1 0 0);
+  --lif3ng-card-foreground: oklch(0.145 0 0);
+  --lif3ng-popover: oklch(1 0 0);
+  --lif3ng-popover-foreground: oklch(0.145 0 0);
+  --lif3ng-primary: oklch(0.205 0 0);
+  --lif3ng-primary-foreground: oklch(0.985 0 0);
+  --lif3ng-secondary: oklch(0.97 0 0);
+  --lif3ng-secondary-foreground: oklch(0.205 0 0);
+  --lif3ng-muted: oklch(0.97 0 0);
+  --lif3ng-muted-foreground: oklch(0.556 0 0);
+  --lif3ng-accent: oklch(0.97 0 0);
+  --lif3ng-accent-foreground: oklch(0.205 0 0);
+  --lif3ng-destructive: oklch(0.577 0.245 27.325);
+  --lif3ng-destructive-foreground: oklch(0.985 0 0);
+  --lif3ng-border: oklch(0.922 0 0);
+  --lif3ng-input: oklch(0.922 0 0);
+  --lif3ng-ring: oklch(0.708 0 0);
+  --lif3ng-chart-1: oklch(0.646 0.222 41.116);
+  --lif3ng-chart-2: oklch(0.6 0.118 184.704);
+  --lif3ng-chart-3: oklch(0.398 0.07 227.392);
+  --lif3ng-chart-4: oklch(0.828 0.189 84.429);
+  --lif3ng-chart-5: oklch(0.769 0.188 70.08);
+  --lif3ng-radius: 0.625rem;
+  --lif3ng-font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --lif3ng-font-serif: Georgia, 'Times New Roman', serif;
+  --lif3ng-font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Consolas, monospace;
+}

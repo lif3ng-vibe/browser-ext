@@ -1,0 +1,58 @@
+/*
+ * Tailwind v4 入口 + 语义映射层。
+ * @theme inline 让 utility 引用 --lif3ng-* 变量(编译期生成类、运行期换值):
+ *   组件写短名(bg-primary),换主题 = [data-theme] 块整组覆盖变量,组件零改动。
+ * token 取值唯一真源在 ./tokens.css;主题块(T2/#8)也写在那里。
+ */
+@import 'tailwindcss';
+@import './tokens.css';
+@import 'tw-animate-css';
+/* shadcn-vue 基础样式(keyframes + data-* variants)。该包 exports 未导出 css 子路径,
+   Vite 解析被挡,绕行 node_modules 直路径;T1 编译 spike 验证过可用。 */
+@import '../../../node_modules/shadcn-vue/dist/tailwind.css';
+
+/* 复制组件里的 dark: variant 走 .dark 类;T2 的 useTheme 在暗系解析值时挂 .dark */
+@custom-variant dark (&:is(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--lif3ng-background);
+  --color-foreground: var(--lif3ng-foreground);
+  --color-card: var(--lif3ng-card);
+  --color-card-foreground: var(--lif3ng-card-foreground);
+  --color-popover: var(--lif3ng-popover);
+  --color-popover-foreground: var(--lif3ng-popover-foreground);
+  --color-primary: var(--lif3ng-primary);
+  --color-primary-foreground: var(--lif3ng-primary-foreground);
+  --color-secondary: var(--lif3ng-secondary);
+  --color-secondary-foreground: var(--lif3ng-secondary-foreground);
+  --color-muted: var(--lif3ng-muted);
+  --color-muted-foreground: var(--lif3ng-muted-foreground);
+  --color-accent: var(--lif3ng-accent);
+  --color-accent-foreground: var(--lif3ng-accent-foreground);
+  --color-destructive: var(--lif3ng-destructive);
+  --color-destructive-foreground: var(--lif3ng-destructive-foreground);
+  --color-border: var(--lif3ng-border);
+  --color-input: var(--lif3ng-input);
+  --color-ring: var(--lif3ng-ring);
+  --color-chart-1: var(--lif3ng-chart-1);
+  --color-chart-2: var(--lif3ng-chart-2);
+  --color-chart-3: var(--lif3ng-chart-3);
+  --color-chart-4: var(--lif3ng-chart-4);
+  --color-chart-5: var(--lif3ng-chart-5);
+  --radius-lg: var(--lif3ng-radius);
+  --radius-md: calc(var(--lif3ng-radius) - 2px);
+  --radius-sm: calc(var(--lif3ng-radius) - 4px);
+  --font-sans: var(--lif3ng-font-sans);
+  --font-serif: var(--lif3ng-font-serif);
+  --font-mono: var(--lif3ng-font-mono);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    @apply font-sans;
+  }
+}
