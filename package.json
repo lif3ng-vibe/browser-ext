@@ -13,7 +13,8 @@
     "compile": "vue-tsc --noEmit",
     "test": "vitest run",
     "postinstall": "wxt prepare",
-    "lint": "eslint ."
+    "lint": "eslint . && stylelint \"src/**/*.css\"",
+    "lint:tokens": "stylelint \"src/**/*.css\""
   },
   "dependencies": {
     "@lucide/vue": "^1.38.0",
@@ -37,10 +38,13 @@
     "eslint-plugin-vue": "^10.10.0",
     "globals": "^17.11.0",
     "jsdom": "^30.0.1",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard": "^40.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.68.0",
     "vitest": "^3.1.4",
+    "vue-eslint-parser": "^10.4.1",
     "vue-tsc": "^3.2.5",
     "wxt": "^0.21.3"
   },
