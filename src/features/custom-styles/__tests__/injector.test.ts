@@ -46,6 +46,48 @@ describe('injector(adoptedStyleSheets 控制器)', () => {
     expect((doc.adoptedStyleSheets[1] as unknown as RecordedSheet).css).toBe('p{}');
   });
 
+  it('预览先到仍然最后胜出:mainSheet 恒在 previewSheet 之前', () => {
+    const doc = fakeDoc();
+    const inject = createInjector(doc);
+    inject.preview('p{}');
+    inject.apply('a{}');
+    expect(doc.adoptedStyleSheets).toHaveLength(2);
+    expect((doc.adoptedStyleSheets[0] as unknown as RecordedSheet).css).toBe('a{}');
+    expect((doc.adoptedStyleSheets[1] as unknown as RecordedSheet).css).toBe('p{}');
+  });
+
+  it('规范化不丢失、不重排外部(foreign)sheet', () => {
+    const doc = fakeDoc();
+    const foreign = stubSheet();
+    doc.adoptedStyleSheets.push(foreign);
+    const inject = createInjector(doc);
+    inject.preview('p{}');
+    inject.apply('a{}');
+    expect(doc.adoptedStyleSheets).toHaveLength(3);
+    expect(doc.adoptedStyleSheets[0]).toBe(foreign);
+    expect((doc.adoptedStyleSheets[1] as unknown as RecordedSheet).css).toBe('a{}');
+    expect((doc.adoptedStyleSheets[2] as unknown as RecordedSheet).css).toBe('p{}');
+  });
+
+  it('apply 空串:未 adopt 过则不落 sheet;再 apply 非空只出现 main', () => {
+    const doc = fakeDoc();
+    const inject = createInjector(doc);
+    inject.apply('');
+    expect(doc.adoptedStyleSheets).toHaveLength(0);
+    inject.apply('a{}');
+    expect(doc.adoptedStyleSheets).toHaveLength(1);
+    expect((doc.adoptedStyleSheets[0] as unknown as RecordedSheet).css).toBe('a{}');
+  });
+
+  it('apply 空串:main 已在 adopted 中则清空其内容(仍在场)', () => {
+    const doc = fakeDoc();
+    const inject = createInjector(doc);
+    inject.apply('a{}');
+    inject.apply('');
+    expect(doc.adoptedStyleSheets).toHaveLength(1);
+    expect((doc.adoptedStyleSheets[0] as unknown as RecordedSheet).css).toBe('');
+  });
+
   it('clearPreview 只移除预览 sheet', () => {
     const doc = fakeDoc();
     const inject = createInjector(doc);
