@@ -1,0 +1,42 @@
+{
+  "name": "browser-ext",
+  "description": "个人浏览器插件工具箱",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "dev:edge": "wxt -b edge",
+    "build": "wxt build -b chrome && wxt build -b firefox && wxt build -b edge",
+    "zip": "wxt zip -b chrome && wxt zip -b firefox && wxt zip -b edge",
+    "compile": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "postinstall": "wxt prepare",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "vue": "^3.5.29"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.4.0",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.5.0",
+    "@wxt-dev/module-vue": "^1.0.3",
+    "eslint": "^10.9.1",
+    "eslint-plugin-vue": "^10.10.0",
+    "globals": "^17.11.0",
+    "jsdom": "^30.0.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^3.1.4",
+    "vue-tsc": "^3.2.5",
+    "wxt": "^0.21.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

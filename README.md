@@ -11,16 +11,29 @@
 
 功能即目录:`src/features/<名>/` 是自包含边界,删目录 = 移功能。共享代码只进 `src/shared/`(浏览器无关)。见 [ADR-0002](docs/adr/0002-feature-isolation.md)。
 
+```
+src/
+├─ entrypoints/     # WXT 入口(popup 等)
+├─ features/        # 每个子目录一个功能,删目录即移除
+└─ shared/          # 跨功能共享,必须浏览器无关
+```
+
 ## 开发
 
 ```bash
 pnpm install        # 安装依赖
 pnpm dev            # Chrome dev 模式
 pnpm dev:firefox    # Firefox dev 模式
-pnpm build          # 构建三浏览器产物
+pnpm dev:edge       # Edge dev 模式
+pnpm build          # 构建三浏览器产物(chrome/firefox/edge)
+pnpm zip            # 打包三浏览器 zip 到 .output/
+pnpm lint           # ESLint
+pnpm compile        # vue-tsc 类型检查
+pnpm test           # Vitest
 ```
 
-(脚手架初始化后可用;当前仓库处于骨架阶段。)
+版本单一来源是 git tag(`v0.x.x`):CI 从 tag 注入 manifest 版本,`package.json` 固定 `0.0.0`(见 [ADR-0001](docs/adr/0001-wxt-vue3-vite-ts.md))。
+
 
 ## 决策留痕
 
