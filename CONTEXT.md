@@ -50,8 +50,34 @@ _Avoid_: 混淆"选择"与"解析值"
 _Avoid_: 原子色(`red-500`)、裸 hex/oklch 字面量进组件模板
 
 **设置页(Settings)**:
-完整设置的权威界面,住 `src/features/settings/`,经 entrypoint 薄壳成 WXT options 页。popup 内只放主题快切与齿轮入口,不承载完整设置。首版内容:主题选择 + 跟随系统复选框。
-_Avoid_: popup 设置(它是入口不是载体)
+完整设置的权威界面 = WXT options 页,由 entrypoint 薄壳聚合各 Feature 暴露的设置区块。`features/settings` 只是主题区块的贡献者,不再独占整页。popup 内只放主题快切与齿轮入口,不承载完整设置。
+_Avoid_: popup 设置(它是入口不是载体)、把某个 Feature 当作 options 页的独占者
+
+**设置区块(Settings Block)**:
+Feature 暴露给 options 聚合页的自包含设置 UI 单元(`ThemeSettingsBlock`、`ManageStylesBlock`),跨 Feature 组合只发生在 options 薄壳,Feature 间仍禁止互相 import。
+_Avoid_: 设置区块互相引用
+
+### 自定义样式
+
+**自定义样式(Custom Style)**:
+一条命名的自包含用户 CSS,绑定一组作用域并带启用状态,住 `src/features/custom-styles/`。v1 只收 CSS,不收 JS。
+_Avoid_: "皮肤"、主题(注入宿主页面的东西不是本插件的 Theme)
+
+**作用域(Scope)**:
+自定义样式的生效范围,用浏览器原生 match pattern 表达。UI 上可只填域名由界面展开成 pattern。
+_Avoid_: 自造域名方言、正则匹配
+
+**全局样式(Global Style)**:
+作用域为 `<all_urls>` 的自定义样式,无特殊机制,只是取值上的特例。
+_Avoid_: 把"全局"当一类 separate 渠道做双轨实现
+
+**级联顺序(Cascade Order)**:
+多个启用样式同时命中页面时全部注入,按管理列表顺序级联,列表靠后的覆盖靠前的;调整列表顺序即优先级。
+_Avoid_: 优先级数值字段
+
+**预览(Preview)**:
+所见即所得编辑时,样式在当前标签页即时生效但不入 storage 的临时状态;保存才持久化。
+_Avoid_: 把预览当成已保存、把已保存当成已预览
 
 ### 决策留痕
 
