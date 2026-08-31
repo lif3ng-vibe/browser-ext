@@ -9,3 +9,4 @@ stats-*.json
 *.local
 .DS_Store
 Thumbs.db
+.superpowers/
