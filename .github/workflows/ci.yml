@@ -64,7 +64,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
-          path: .output/${{ matrix.browser }}-mv*/
+          path: .output/${{ matrix.browser }}-mv*/*
 
   release:
     name: release
