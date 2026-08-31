@@ -64,7 +64,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
-          path: .output/${{ matrix.browser }}-mv*/*
+          path: .output/${{ matrix.browser }}-mv*/
+          # WXT 输出目录 .output 以点开头,v4 默认排除隐藏文件,必须显式包含
+          include-hidden-files: true
 
   release:
     name: release
