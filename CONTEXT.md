@@ -54,8 +54,8 @@ _Avoid_: 原子色(`red-500`)、裸 hex/oklch 字面量进组件模板
 _Avoid_: popup 设置(它是入口不是载体)、把某个 Feature 当作 options 页的独占者
 
 **设置区块(Settings Block)**:
-Feature 暴露给 options 聚合页的自包含设置 UI 单元(`ThemeSettingsBlock`、`ManageStylesBlock`),跨 Feature 组合只发生在 options 薄壳,Feature 间仍禁止互相 import。
-_Avoid_: 设置区块互相引用
+Feature 暴露给扩展页面(聚合设置页、popup 等入口)的自包含设置 UI 单元(`ThemeSettingsBlock`、`ManageStylesBlock`),跨 Feature 组合只发生在 entrypoint 薄壳(options 聚合页与 popup 皆是),Feature 间仍禁止互相 import。
+_Avoid_: 设置区块互相引用、把组合逻辑写进 Feature 内部
 
 ### 自定义样式
 
