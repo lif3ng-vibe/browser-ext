@@ -42,6 +42,16 @@ describe('matchPatternToRegExp', () => {
     expect(re?.test('https://api.x.dev/v2/users')).toBe(false);
   });
 
+  it('host 大小写不敏感(scheme/host 折叠,不用 i 标志)', () => {
+    expect(matchPatternToRegExp('*://github.com/*')?.test('https://GITHUB.com/a')).toBe(true);
+    // 任意子域 + host 大小写混合(通配 host 形式同样折叠)
+    expect(matchPatternToRegExp('*://*.github.com/*')?.test('https://API.GitHub.com/a')).toBe(true);
+  });
+
+  it('路径大小写敏感(即使 host 不敏感)', () => {
+    expect(matchPatternToRegExp('https://api.x.dev/v1/*')?.test('https://api.x.dev/V1/users')).toBe(false);
+  });
+
   it('非法 pattern 返回 null(不抛)', () => {
     expect(matchPatternToRegExp('nonsense')).toBeNull();
     expect(matchPatternToRegExp('https://')).toBeNull();

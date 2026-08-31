@@ -12,22 +12,23 @@ export function matchPatternToRegExp(pattern: string): RegExp | null {
   if (pattern === '<all_urls>') return /^(?:https?|file|ftp):\/\//;
   const m = PATTERN_RE.exec(pattern);
   if (!m) return null;
-  const [, scheme, host = '', rawPath = '/'] = m;
+  const [, scheme = '', host = '', rawPath = '/'] = m;
   if (host === '' && scheme !== 'file') return null;
-  let regex = '^';
-  regex += scheme === '*' ? 'https?' : scheme;
+  // host 大小写不敏感:scheme/host 的字面字母烘焙成双字母字符类(不用 i 标志,保证跨端可移植;路径保持大小写敏感)
+  const fold = (s: string) => s.replace(/[a-z]/gi, (c) => `[${c.toLowerCase()}${c.toUpperCase()}]`);
+  let regex = fold(scheme === '*' ? 'https?' : scheme);
   regex += '://';
   if (host === '*') {
     regex += '[^/]+';
   } else if (host.startsWith('*.')) {
-    regex += `(?:[^/]+\\.)?${escapeRegExp(host.slice(2))}`;
+    regex += `(?:[^/]+\\.)?${fold(escapeRegExp(host.slice(2)))}`;
   } else {
-    regex += escapeRegExp(host);
+    regex += fold(escapeRegExp(host));
   }
   const path = rawPath || '/';
   // 路径大小写敏感
   regex += path.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-  return new RegExp(`^${regex}$`, 'i');
+  return new RegExp(`^${regex}$`);
 }
 
 function escapeRegExp(s: string): string {
