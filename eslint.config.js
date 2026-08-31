@@ -24,7 +24,11 @@ export default tseslint.config(
   },
   {
     languageOptions: {
-      globals: { ...globals.browser },
+      globals: {
+        ...globals.browser,
+        // WXT 注入的全局(webextension-polyfill):TS 类型由 .wxt 类型生成提供
+        browser: 'readonly',
+      },
     },
   },
 );
