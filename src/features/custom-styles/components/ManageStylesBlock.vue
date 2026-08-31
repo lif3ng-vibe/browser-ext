@@ -20,6 +20,13 @@ async function createAndEdit() {
   const s = await store.create();
   await edit(s.id);
 }
+
+async function confirmRemove(id: string) {
+  const target = store.styles.value.find((s) => s.id === id);
+  if (!target) return;
+  if (!window.confirm(`删除「${target.name}」?不可恢复。`)) return;
+  await store.remove(id);
+}
 </script>
 
 <template>
@@ -35,7 +42,7 @@ async function createAndEdit() {
         :styles="store.styles.value"
         @toggle="(id, on) => store.update(id, { enabled: on })"
         @edit="edit"
-        @remove="store.remove"
+        @remove="confirmRemove"
         @move="(id, d) => store.move(id, d)"
       />
       <Button

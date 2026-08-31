@@ -70,8 +70,9 @@ watch(activeTab, async (next, prev) => {
 });
 
 async function save() {
+  name.value = name.value.trim();
   await store.update(props.record.id, {
-    name: name.value.trim() || '未命名样式',
+    name: name.value || '未命名样式',
     code: code.value,
     patterns: parsePatterns(patternsText.value),
   });
