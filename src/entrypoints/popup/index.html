@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>browser-ext</title>
     <meta name="manifest.type" content="browser_action" />
+    <!-- FOUC 阻塞脚本:外链(CSP 实测内联被拦),Vue mount 前同步挂 data-theme;
+         文件在 public/(原样拷到输出根),绝对路径引用最稳 -->
+    <script src="/theme-fouc.js"></script>
   </head>
   <body>
     <div id="app"></div>
