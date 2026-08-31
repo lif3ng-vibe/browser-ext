@@ -45,7 +45,7 @@ function pick(id: string) {
         <span class="text-sm">{{ t.label }}</span>
         <span
           v-if="resolved === t.id"
-          class="text-muted-foreground ms-auto text-xs"
+          class="text-muted-foreground ms-auto shrink-0 whitespace-nowrap text-xs"
         >生效中</span>
       </button>
     </div>

@@ -15,6 +15,8 @@ export default defineConfig({
     name: 'browser-ext',
     description: '个人浏览器插件工具箱',
     version: process.env.WXT_VERSION || '0.0.0',
+    // storage:主题系统(shared/theme)用 WXT storage 存设置 + 跨页面同步(非敏感权限)
+    permissions: ['storage'],
   }),
   zip: {
     artifactTemplate: '{{name}}-{{version}}-{{browser}}.zip',

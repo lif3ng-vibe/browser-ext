@@ -64,7 +64,9 @@ const tokenLintPlugin = {
 };
 
 export default tseslint.config(
-  { ignores: ['.output/', '.wxt/', 'node_modules/', 'public/'] },
+  { ignores: ['.output/', '.wxt/', 'node_modules/', 'public/'],
+    // 脚本目录(node 环境)
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
@@ -96,6 +98,7 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         ...globals.browser,
+        ...globals.node,
         // WXT 注入的全局(webextension-polyfill):TS 类型由 .wxt 类型生成提供
         browser: 'readonly',
       },

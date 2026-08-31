@@ -37,7 +37,7 @@ import { useTheme } from '@/shared/theme/useTheme';
 const { choice, followSystem, resolved, setChoice, setFollowSystem } = useTheme();
 ```
 
-每个扩展页面 setup 一次。存储(`wxt/utils/storage`)、跨页面同步(`storage.watch`)、FOUC 防护全部内建,**feature 代码不准自己读写 `lif3ng/*` storage 键**。
+每个扩展页面 setup 一次。存储(`wxt/utils/storage`,manifest 需 `storage` 权限,已声明)、跨页面同步(`storage.watch`)、FOUC 防护全部内建,**feature 代码不准自己读写 `lif3ng/*` storage 键**。
 
 ### FOUC(主题闪烁)
 
@@ -48,6 +48,16 @@ const { choice, followSystem, resolved, setChoice, setFollowSystem } = useTheme(
 ```
 
 CSP 实测(2026-08-31):MV3 默认 CSP `script-src 'self'` 禁内联 `<script>`,外链允许。脚本同步读 `localStorage` 镜像挂 `data-theme`;`useTheme` 挂载后再以 storage 真值校正。
+
+### 端到端验收
+
+`scripts/acceptance.mjs`(真浏览器,Playwright chromium + `--headless=new`;stable Chrome 137+ 已移除 `--load-extension`):
+
+```sh
+pnpm build -b chrome && node scripts/acceptance.mjs
+```
+
+覆盖:#8 手动验收脚本全部条目(四主题选择、popup/options 跨页面同步、跟随系统 × 系统明暗、关跟随不跟随)+ 四主题 × 两页面截图(落 `.output/acceptance/`)。2026-08-31 首跑 10/10,并抓出 manifest 缺 `storage` 权限的真 bug(已修)。
 
 ### 手动加主题三步曲(新主题清单条目)
 
