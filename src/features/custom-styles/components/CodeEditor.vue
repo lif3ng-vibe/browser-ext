@@ -23,10 +23,10 @@ const editorTheme = EditorView.theme({
   },
   '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'var(--lif3ng-muted)' },
   '.cm-selectionBackground': {
-    backgroundColor: 'color-mix(in srgb, var(--lif3ng-primary) 25%, transparent)',
+    backgroundColor: 'color-mix(in srgb, var(--lif3ng-primary) 50%, transparent) !important',
   },
   '&.cm-focused .cm-selectionBackground': {
-    backgroundColor: 'color-mix(in srgb, var(--lif3ng-primary) 35%, transparent)',
+    backgroundColor: 'color-mix(in srgb, var(--lif3ng-primary) 75%, transparent) !important',
   },
 });
 
