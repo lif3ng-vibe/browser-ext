@@ -8,10 +8,6 @@ const EDITING_KEY = 'local:customStyles/editing';
 export const customStylesItem = storage.defineItem<CustomStyle[]>(CUSTOM_STYLES_KEY, { fallback: [] });
 /** 正在编辑的样式 id:UI 全局状态,options 的「编辑」按钮经由此把侧边栏带到目标样式(存储即通道) */
 export const editingItem = storage.defineItem<string | null>(EDITING_KEY, { fallback: null });
-/** 编辑器自动折行开关(默认开):StyleEditor 的「折行」复选框读写,CodeEditor 消费 */
-export const editorWrapItem = storage.defineItem<boolean>('local:customStyles/editorWrap', {
-  fallback: true,
-});
 
 export async function listStyles(): Promise<CustomStyle[]> {
   return customStylesItem.getValue();

@@ -1,4 +1,4 @@
-<!-- src/features/custom-styles/components/CodeEditor.vue -->
+<!-- src/shared/editor/CodeEditor.vue -->
 <script lang="ts" setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { EditorView, basicSetup } from 'codemirror';

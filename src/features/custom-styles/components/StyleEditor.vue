@@ -1,12 +1,12 @@
 <!-- src/features/custom-styles/components/StyleEditor.vue -->
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
-import CodeEditor from './CodeEditor.vue';
+import CodeEditor from '@/shared/editor/CodeEditor.vue';
+import { useEditorWrap } from '@/shared/editor/useEditorWrap';
 import { useCustomStyles } from '../useCustomStyles';
 import { useActiveTab } from '../useActiveTab';
 import { expandDomain } from '../matcher';
-import { editorWrapItem } from '../repository';
 import { PREVIEW_MSG } from '../messages';
 import type { CustomStyle } from '../types';
 import { Button } from '@/shared/ui/button';
@@ -21,15 +21,8 @@ const name = ref(props.record.name);
 const patternsText = ref(props.record.patterns.join('\n'));
 const code = ref(props.record.code);
 
-// 折行开关:持久化在 storage,默认开
-const wrap = ref(true);
-onMounted(async () => {
-  wrap.value = await editorWrapItem.getValue();
-});
-async function setWrap(v: boolean) {
-  wrap.value = v;
-  await editorWrapItem.setValue(v);
-}
+// 折行开关:持久化在 storage,默认开(共享 composable,各 Feature 代码输入区共用)
+const { wrap, setWrap } = useEditorWrap();
 
 // 裸域名 → 精确+子域 两条 pattern;完整 pattern 原样保留
 function parsePatterns(text: string): string[] {

@@ -23,3 +23,36 @@ export async function openManagerPanel(): Promise<boolean> {
   }
   return false;
 }
+
+/** 侧边栏是否打开;Chromium 无查询 API → null(未知) */
+export async function isManagerPanelOpen(): Promise<boolean | null> {
+  const b = browser as Partial<WxtBrowser> & {
+    sidebarAction?: { isOpen?: (o: { windowId?: number }) => Promise<boolean> };
+  };
+  try {
+    if (b.sidebarAction?.isOpen) {
+      const win = await browser.windows.getCurrent();
+      return await b.sidebarAction.isOpen({ windowId: win.id! });
+    }
+  } catch {
+    /* fallthrough */
+  }
+  return null;
+}
+
+/** 收起侧边栏;API 不支持(如 Chromium 的 sidePanel 无 close)→ false */
+export async function closeManagerPanel(): Promise<boolean> {
+  const b = browser as Partial<WxtBrowser> & {
+    sidebarAction?: { close?: (o: { windowId?: number }) => Promise<void> };
+  };
+  try {
+    if (b.sidebarAction?.close) {
+      const win = await browser.windows.getCurrent();
+      await b.sidebarAction.close({ windowId: win.id! });
+      return true;
+    }
+  } catch {
+    /* fallthrough */
+  }
+  return false;
+}
