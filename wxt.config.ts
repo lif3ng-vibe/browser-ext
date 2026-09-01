@@ -1,5 +1,6 @@
 import { defineConfig } from 'wxt';
 import tailwindcss from '@tailwindcss/vite';
+import { existsSync, readFileSync } from 'node:fs';
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
@@ -15,6 +16,11 @@ export default defineConfig({
     name: 'browser-ext',
     description: '个人浏览器插件工具箱',
     version: process.env.WXT_VERSION || '0.0.0',
+    // 本地自动化测试的稳定扩展 ID:key 存 .superpowers/sdd/ext-key.txt(gitignored,
+    // 不随产物分发);存在则注入 manifest.key,Chrome 由它派生固定 ID。CI 无此文件,不受影响。
+    ...(existsSync('.superpowers/sdd/ext-key.txt')
+      ? { key: readFileSync('.superpowers/sdd/ext-key.txt', 'utf8').trim() }
+      : {}),
     // storage:主题/custom-styles 存储同步(非敏感);sidePanel:侧边栏管理面板 API(仅 Chromium)
     permissions: env.browser === 'firefox' ? ['storage'] : ['storage', 'sidePanel'],
     // custom-styles(#3):<all_urls> host 权限 —— content script 全站注入 + tabs.url 读取
