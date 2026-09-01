@@ -5,9 +5,11 @@ import { useTheme } from '@/shared/theme/useTheme';
 import { Button } from '@/shared/ui/button';
 import StyleList from './components/StyleList.vue';
 import StyleEditor from './components/StyleEditor.vue';
+import { trackPanelAlive } from './openManagerPanel';
 import { useCustomStyles } from './useCustomStyles';
 
 useTheme(); // 侧边栏页吃主题系统,跨页面即改即随
+trackPanelAlive(); // 心跳登记:popup 据此判断面板开合(Chromium 无查询 API)
 const store = useCustomStyles();
 
 const editing = computed(() =>

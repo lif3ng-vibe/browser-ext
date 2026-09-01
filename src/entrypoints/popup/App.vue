@@ -4,6 +4,7 @@ import {
   closeManagerPanel,
   isManagerPanelOpen,
   openManagerPanel,
+  panelAliveItem,
 } from '@/features/custom-styles/openManagerPanel';
 import ThemeQuickSwitch from '@/features/settings/components/ThemeQuickSwitch.vue';
 import { Button } from '@/shared/ui/button';
@@ -14,11 +15,16 @@ async function openSettings() {
   await browser.runtime.openOptionsPage();
 }
 
-// 侧边栏开合状态:true 开 / false 关 / null 未知(Chromium 无查询 API)
+// 侧边栏开合状态:Firefox 走平台查询;Chromium 走面板自报心跳(session storage)
 const panelOpen = ref<boolean | null>(null);
 onMounted(async () => {
   panelOpen.value = await isManagerPanelOpen();
 });
+// 打开动作成功后把心跳一并写上(面板 pagehide 才会清);这样「开过但面板未及登记」也能正确显示
+async function markPanel(open: boolean) {
+  panelOpen.value = open;
+  if (open) await panelAliveItem.setValue(true);
+}
 
 // 面板停靠屏幕右侧:关 → PanelRightOpen(左箭头,拉出来)/ 开 → PanelRightClose(右箭头,推回去)/ 未知 → PanelRight
 const panelIcon = computed(() =>
@@ -47,8 +53,7 @@ async function togglePanel() {
   }
   else {
     const ok = await openManagerPanel();
-    if (ok)
-      panelOpen.value = true;
+    if (ok) await markPanel(true);
     else showHint('未能自动打开侧边栏');
   }
 }
