@@ -19,7 +19,11 @@ let themeObserver: MutationObserver | undefined;
 
 // 主题:全部走 semantic token,随 data-theme 联动
 // 选区 = foreground 低透明叠加(亮暗自适应;primary 是前景性质的中性色,不可作高亮色源)
-const editorTheme = EditorView.theme({
+// 第二参 { dark }:声明明暗给 CM6 全局 —— 光标色、补全 tooltip 等内置样式都按它选亮/暗变体;
+// 缺失时 CM 恒按亮色处理,暗主题下光标黑线隐形、tooltip 亮底配暗色板白字不可读(实锤取证过)。
+const editorTheme = (dark: boolean) =>
+  EditorView.theme(
+    {
   '&': { backgroundColor: 'var(--lif3ng-background)', color: 'var(--lif3ng-foreground)' },
   '&.cm-focused': { outline: 'none' },
   '.cm-content': { caretColor: 'var(--lif3ng-primary)', fontFamily: 'var(--lif3ng-font-mono)' },
@@ -39,7 +43,9 @@ const editorTheme = EditorView.theme({
   '&.cm-focused .cm-selectionBackground': {
     backgroundColor: 'color-mix(in srgb, var(--lif3ng-foreground) 28%, transparent) !important',
   },
-});
+    },
+    { dark },
+  );
 
 // 语法高亮:basicSetup 的 defaultHighlightStyle 是固定浅色板,暗色下不适配。
 // 两套 HighlightStyle 按当前明暗二选一挂载(选择器特异性相同,只挂一份保证不叠)。
@@ -85,7 +91,7 @@ function buildExtensions() {
     css(),
     // 折行:显式 prop 优先,否则跟随全局偏好
     ...(effectiveWrap.value ? [EditorView.lineWrapping] : []),
-    editorTheme,
+    editorTheme(isDarkTheme()),
     EditorView.updateListener.of((u) => {
       if (u.docChanged) emit('update:modelValue', u.state.doc.toString());
     }),
