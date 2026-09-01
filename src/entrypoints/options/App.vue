@@ -1,6 +1,7 @@
 <!-- 聚合页薄壳:按 CONTEXT.md「设置区块」词条,跨 Feature 组合只发生在这里 -->
 <script lang="ts" setup>
 import ThemeSettingsBlock from '@/features/settings/components/ThemeSettingsBlock.vue';
+import EditorSettingsBlock from '@/features/settings/components/EditorSettingsBlock.vue';
 import ManageStylesBlock from '@/features/custom-styles/components/ManageStylesBlock.vue';
 </script>
 
@@ -11,6 +12,7 @@ import ManageStylesBlock from '@/features/custom-styles/components/ManageStylesB
         设置
       </h1>
       <ThemeSettingsBlock />
+      <EditorSettingsBlock />
       <ManageStylesBlock />
     </div>
   </main>

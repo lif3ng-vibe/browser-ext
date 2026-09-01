@@ -1,12 +1,16 @@
 <!-- src/shared/editor/CodeEditor.vue -->
 <script lang="ts" setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { EditorView, basicSetup } from 'codemirror';
 import { css } from '@codemirror/lang-css';
+import { useEditorWrap } from './useEditorWrap';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
 
 const props = defineProps<{ modelValue: string; wrap?: boolean }>();
+// 未显式传 wrap 时跟随全局偏好(shared/editor 的 useEditorWrap);显式传值则覆盖全局
+const globalWrap = useEditorWrap();
+const effectiveWrap = computed(() => props.wrap ?? globalWrap.wrap.value);
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const container = ref<HTMLDivElement>();
@@ -75,8 +79,8 @@ function buildExtensions() {
     // basicSetup 自带 defaultHighlightStyle;后挂的 syntaxHighlighting 覆盖前者(同 facet,后者优先)
     syntaxHighlighting(isDarkTheme() ? darkHighlight : lightHighlight),
     css(),
-    // 默认折行;wrap === false 时关闭
-    ...(props.wrap === false ? [] : [EditorView.lineWrapping]),
+    // 折行:显式 prop 优先,否则跟随全局偏好
+    ...(effectiveWrap.value ? [EditorView.lineWrapping] : []),
     editorTheme,
     EditorView.updateListener.of((u) => {
       if (u.docChanged) emit('update:modelValue', u.state.doc.toString());
@@ -109,9 +113,9 @@ function rebuild() {
   });
 }
 
-// 折行开关:重建视图等效 reconfigure(@codemirror/state 非直接依赖,Compartment 不可 import)
+// 折行开关 / 全局偏好变化:重建视图等效 reconfigure(@codemirror/state 非直接依赖,Compartment 不可 import)
 watch(
-  () => props.wrap,
+  effectiveWrap,
   () => rebuild(),
 );
 
