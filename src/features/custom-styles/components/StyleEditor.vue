@@ -1,12 +1,12 @@
 <!-- src/features/custom-styles/components/StyleEditor.vue -->
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import CodeEditor from '@/shared/editor/CodeEditor.vue';
 import { useCustomStyles } from '../useCustomStyles';
 import { useActiveTab } from '../useActiveTab';
 import { expandDomain } from '../matcher';
-import { PREVIEW_MSG } from '../messages';
+import { isPreviewable, usePreviewSession } from '../previewSession';
 import type { CustomStyle } from '../types';
 import { Button } from '@/shared/ui/button';
 import { Label } from '@/shared/ui/label';
@@ -18,7 +18,6 @@ const activeTab = useActiveTab();
 const name = ref(props.record.name);
 const patternsText = ref(props.record.patterns.join('\n'));
 const code = ref(props.record.code);
-
 
 // 裸域名 → 精确+子域 两条 pattern;完整 pattern 原样保留
 function parsePatterns(text: string): string[] {
@@ -46,49 +45,39 @@ watch(
   },
 );
 
-const previewable = computed(() => /^https?:/.test(activeTab.value?.url ?? ''));
-
-async function sendPreview() {
-  const id = activeTab.value?.id;
-  if (id == null || !dirty.value || !previewable.value) return;
-  try {
-    await browser.tabs.sendMessage(id, { type: PREVIEW_MSG.PREVIEW, css: code.value });
-  } catch {
-    /* 该页没有 content script(如受保护页面),忽略 */
-  }
-}
-const sendPreviewDebounced = useDebounceFn(() => void sendPreview(), 300);
+// 预览会话:租约式生命周期,纪律(tab 清旧、释放、门控)全在 module 内
+const preview = usePreviewSession(activeTab, () =>
+  dirty.value && code.value.trim() ? code.value : undefined,
+);
+const sendPreviewDebounced = useDebounceFn(() => void preview.renew(), 300);
 watch(code, () => void sendPreviewDebounced());
-
-// 活动标签页切换:旧 tab 收走预览;若仍脏,新 tab 继续预览
-watch(activeTab, async (next, prev) => {
-  if (prev?.id != null) {
-    try {
-      await browser.tabs.sendMessage(prev.id, { type: PREVIEW_MSG.CLEAR });
-    } catch { /* 无 content script */ }
-  }
-  if (next && dirty.value) void sendPreviewDebounced();
-});
+const previewable = computed(() => isPreviewable(activeTab.value?.url));
 
 async function save() {
   name.value = name.value.trim();
   await store.update(props.record.id, {
     name: name.value || '未命名样式',
     code: code.value,
-    patterns: parsePatterns(patternsText.value),
+    patterns: parsePatterns(patternTextSafe()),
   });
-  const id = activeTab.value?.id;
-  if (id != null) {
-    try {
-      await browser.tabs.sendMessage(id, { type: PREVIEW_MSG.CLEAR });
-    } catch { /* 无 content script */ }
-  }
+  // 保存语义:先持久化,后释放预览(storage watch 落地前可能有毫秒级回闪,issue #16 Q4)
+  await preview.release();
+}
+
+function patternTextSafe(): string {
+  return patternsText.value;
 }
 
 async function back() {
   if (dirty.value && !window.confirm('有未保存修改,放弃并返回清单?')) return;
+  await preview.release(); // 泄漏路径 (a):放弃草稿也要收走预览(issue #16 Q3)
   await store.setEditing(null);
 }
+
+// 泄漏路径 (b):编辑器卸载(面板关闭等)释放预览
+onBeforeUnmount(() => {
+  void preview.release();
+});
 </script>
 
 <template>
