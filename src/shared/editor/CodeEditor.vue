@@ -28,7 +28,11 @@ const editorTheme = EditorView.theme({
     color: 'var(--lif3ng-muted-foreground)',
     border: 'none',
   },
-  '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'var(--lif3ng-muted)' },
+  // 活动行必须半透明:选区层 z-index 为负(垫底),不透明的行背景会把落在活动行上的
+  // 选区(双击选词/单行拖拽)整个盖住 —— 曾致"全选有底色、行内选中无底色"
+  '.cm-activeLine, .cm-activeLineGutter': {
+    backgroundColor: 'color-mix(in srgb, var(--lif3ng-muted) 40%, transparent)',
+  },
   '.cm-selectionBackground': {
     backgroundColor: 'color-mix(in srgb, var(--lif3ng-foreground) 18%, transparent) !important',
   },
