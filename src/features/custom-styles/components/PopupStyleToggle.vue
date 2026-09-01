@@ -3,7 +3,7 @@
 import { onMounted, ref } from 'vue';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { matchingStyles } from '../matcher';
-import { useCustomStyles } from '../useCustomStyles';
+import { useCustomStyles } from '../store';
 import type { CustomStyle } from '../types';
 
 const store = useCustomStyles();

@@ -3,7 +3,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import CodeEditor from '@/shared/editor/CodeEditor.vue';
-import { useCustomStyles } from '../useCustomStyles';
+import { useCustomStyles } from '../store';
 import { useActiveTab } from '../useActiveTab';
 import { expandDomain } from '../matcher';
 import { isPreviewable, usePreviewSession } from '../previewSession';

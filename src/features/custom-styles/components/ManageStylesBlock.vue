@@ -3,7 +3,7 @@
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import StyleList from './StyleList.vue';
-import { useCustomStyles } from '../useCustomStyles';
+import { useCustomStyles } from '../store';
 import { openManagerPanel } from '../openManagerPanel';
 
 const store = useCustomStyles();
