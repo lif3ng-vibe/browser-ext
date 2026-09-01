@@ -45,7 +45,10 @@ function summary(s: CustomStyle): string {
       >
         <span class="text-sm">{{ s.name }}</span>
       </button>
-      <span class="text-muted-foreground ms-auto shrink-0 text-xs">{{ summary(s) }}</span>
+      <span
+        class="text-muted-foreground ms-auto shrink-0 text-xs"
+        :title="s.patterns.length ? s.patterns.join('\n') : undefined"
+      >{{ summary(s) }}</span>
       <span class="flex shrink-0 items-center">
         <Button
           variant="ghost"

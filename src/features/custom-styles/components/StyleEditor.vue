@@ -1,14 +1,16 @@
 <!-- src/features/custom-styles/components/StyleEditor.vue -->
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import CodeEditor from './CodeEditor.vue';
 import { useCustomStyles } from '../useCustomStyles';
 import { useActiveTab } from '../useActiveTab';
 import { expandDomain } from '../matcher';
+import { editorWrapItem } from '../repository';
 import { PREVIEW_MSG } from '../messages';
 import type { CustomStyle } from '../types';
 import { Button } from '@/shared/ui/button';
+import { Checkbox } from '@/shared/ui/checkbox';
 import { Label } from '@/shared/ui/label';
 
 const props = defineProps<{ record: CustomStyle }>();
@@ -18,6 +20,16 @@ const activeTab = useActiveTab();
 const name = ref(props.record.name);
 const patternsText = ref(props.record.patterns.join('\n'));
 const code = ref(props.record.code);
+
+// 折行开关:持久化在 storage,默认开
+const wrap = ref(true);
+onMounted(async () => {
+  wrap.value = await editorWrapItem.getValue();
+});
+async function setWrap(v: boolean) {
+  wrap.value = v;
+  await editorWrapItem.setValue(v);
+}
 
 // 裸域名 → 精确+子域 两条 pattern;完整 pattern 原样保留
 function parsePatterns(text: string): string[] {
@@ -110,6 +122,14 @@ async function back() {
         v-if="dirty"
         class="bg-secondary text-secondary-foreground shrink-0 rounded px-1.5 py-0.5 text-xs"
       >未保存</span>
+      <label class="text-muted-foreground flex shrink-0 cursor-pointer items-center gap-1">
+        <Checkbox
+          :model-value="wrap"
+          aria-label="自动折行"
+          @update:model-value="(v) => setWrap(v === true)"
+        />
+        <span class="text-xs">折行</span>
+      </label>
       <Button
         variant="outline"
         size="sm"
@@ -136,6 +156,7 @@ async function back() {
 
     <CodeEditor
       v-model="code"
+      :wrap="wrap"
       class="min-h-40 flex-1"
     />
     <p
