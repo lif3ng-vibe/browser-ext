@@ -7,7 +7,7 @@ import {
 } from '@/features/custom-styles/openManagerPanel';
 import ThemeQuickSwitch from '@/features/settings/components/ThemeQuickSwitch.vue';
 import { Button } from '@/shared/ui/button';
-import { PanelLeft, PanelLeftClose, PanelLeftOpen, Settings } from '@lucide/vue';
+import { PanelRight, PanelRightClose, PanelRightOpen, Settings } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
 async function openSettings() {
@@ -20,9 +20,9 @@ onMounted(async () => {
   panelOpen.value = await isManagerPanelOpen();
 });
 
-// 图标如实反映已知信息:开 → PanelLeftClose(点击收起)/ 关 → PanelLeftOpen / 未知 → PanelLeft
+// 面板停靠屏幕右侧:关 → PanelRightOpen(左箭头,拉出来)/ 开 → PanelRightClose(右箭头,推回去)/ 未知 → PanelRight
 const panelIcon = computed(() =>
-  panelOpen.value === true ? PanelLeftClose : panelOpen.value === false ? PanelLeftOpen : PanelLeft,
+  panelOpen.value === true ? PanelRightClose : panelOpen.value === false ? PanelRightOpen : PanelRight,
 );
 const panelLabel = computed(() => (panelOpen.value === true ? '收起侧边栏' : '打开侧边栏'));
 
