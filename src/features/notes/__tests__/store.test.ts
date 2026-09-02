@@ -141,3 +141,39 @@ describe('notes store:归一化查询 + 排序(store 外部行为)', () => {
     expect((stored.notes as unknown[]).length).toBe(1);
   });
 });
+
+describe('notes store:跨上下文(镜像 custom-styles 并发用例风格)', () => {
+  beforeEach(() => {
+    fakeBrowser.reset();
+  });
+
+  it('写队列串行:并发 create 不丢更新', async () => {
+    const api = await freshStore();
+
+    await Promise.all([api.create('https://a.com/p', '甲'), api.create(null, '乙'), api.create('https://a.com/p', '丙')]);
+
+    const stored = await fakeBrowser.storage.local.get('notes');
+    expect((stored.notes as unknown[]).length).toBe(3);
+  });
+
+  it('外部上下文直接写 storage → watch 同步本页 notes ref', async () => {
+    const api = await freshStore();
+    await vi.waitFor(() => expect(api.notes.value).toEqual([]));
+
+    // 绕过 store,模拟另一上下文(popup)直接写 storage
+    await fakeBrowser.storage.local.set({
+      notes: [{ id: 'x', url: null, text: '外部', createdAt: 1, updatedAt: 1 }],
+    });
+
+    await vi.waitFor(() => expect(api.notes.value).toHaveLength(1));
+    expect(api.notes.value[0]!.id).toBe('x');
+  });
+
+  it('总开关读取位:enabled ref 跟随 storage(默认开)', async () => {
+    const api = await freshStore();
+    await vi.waitFor(() => expect(api.enabled.value).toBe(true));
+
+    await fakeBrowser.storage.local.set({ 'notes:enabled': false });
+    await vi.waitFor(() => expect(api.enabled.value).toBe(false));
+  });
+});
