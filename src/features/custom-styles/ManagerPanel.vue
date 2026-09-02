@@ -1,6 +1,6 @@
 <!-- src/features/custom-styles/ManagerPanel.vue -->
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useTheme } from '@/shared/theme/useTheme';
 import { Button } from '@/shared/ui/button';
 import StyleList from './components/StyleList.vue';
@@ -21,11 +21,36 @@ async function newStyle() {
   await store.setEditing(s.id);
 }
 
-async function confirmRemove(id: string) {
+// 删除确认页内化:与 options 管理块同构(原生 dialog 在嵌入式入口被静默抑制,统一不用)
+interface PendingConfirm {
+  msg: string;
+  confirmLabel: string;
+  action: () => Promise<void>;
+}
+const pendingConfirm = ref<PendingConfirm | null>(null);
+
+/** 删除请求 → 页内确认条 */
+function requestRemove(id: string) {
   const target = store.styles.value.find((s) => s.id === id);
   if (!target) return;
-  if (!window.confirm(`删除「${target.name}」?不可恢复。`)) return;
-  await store.remove(id);
+  pendingConfirm.value = {
+    msg: `删除「${target.name}」?不可恢复。`,
+    confirmLabel: '确认删除',
+    action: () => store.remove(id),
+  };
+}
+
+/** 确认条按钮:执行动作并收起 */
+async function acceptConfirm() {
+  const pending = pendingConfirm.value;
+  if (!pending) return;
+  pendingConfirm.value = null;
+  await pending.action();
+}
+
+/** 确认条按钮:放弃 */
+function cancelConfirm() {
+  pendingConfirm.value = null;
 }
 </script>
 
@@ -46,9 +71,33 @@ async function confirmRemove(id: string) {
           :styles="store.styles.value"
           @toggle="(id, on) => store.update(id, { enabled: on })"
           @edit="(id) => store.setEditing(id)"
-          @remove="confirmRemove"
+          @remove="requestRemove"
           @move="(id, d) => store.move(id, d)"
         />
+      </div>
+      <div
+        v-if="pendingConfirm"
+        data-testid="confirm-banner"
+        class="border-border shrink-0 rounded-md border p-2"
+      >
+        <p class="text-sm">
+          {{ pendingConfirm.msg }}
+        </p>
+        <div class="mt-2 flex gap-2">
+          <Button
+            size="sm"
+            @click="acceptConfirm"
+          >
+            {{ pendingConfirm.confirmLabel }}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            @click="cancelConfirm"
+          >
+            取消
+          </Button>
+        </div>
       </div>
       <Button
         class="shrink-0"
