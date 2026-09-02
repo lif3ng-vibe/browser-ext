@@ -1,6 +1,6 @@
 // src/features/custom-styles/__tests__/ManageStylesBlock.test.ts
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import type { CustomStyle } from '../types';
 
@@ -37,13 +37,8 @@ async function chooseFile(wrapper: VueWrapper, text: string) {
 }
 
 describe('ManageStylesBlock 导出/导入(issue #14)', () => {
-  let alert: MockInstance<typeof window.alert>;
-  let confirm: MockInstance<typeof window.confirm>;
-
   beforeEach(() => {
     fakeBrowser.reset();
-    alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
-    confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -75,7 +70,7 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
     expect(revoked).toHaveBeenCalledWith('blob:mock');
   });
 
-  it('导入:解析→摘要 confirm(覆盖 1/新增 1)→合并入 storage', async () => {
+  it('导入:解析→页内摘要确认条(覆盖 1/新增 1)→点确认合并入 storage', async () => {
     const a = style({ id: 'a', name: '甲' });
     const b = style({ id: 'b', name: '乙' });
     const { ManageStylesBlock } = await freshFixture([a]);
@@ -84,36 +79,56 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
     await flushPromises();
     await chooseFile(wrapper, backupOf([style({ id: 'a', name: '文件甲' }), b]));
 
-    expect(alert).not.toHaveBeenCalled();
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(confirm.mock.calls[0]![0]).toContain('覆盖 1 条');
-    expect(confirm.mock.calls[0]![0]).toContain('新增 1 条');
+    // 页内确认条出现,带摘要文案;未导入
+    const banner = wrapper.find('[data-testid="import-confirm"]');
+    expect(banner.exists()).toBe(true);
+    expect(banner.text()).toContain('覆盖 1 条');
+    expect(banner.text()).toContain('新增 1 条');
+    let stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
+    expect(stored.map((s) => s.id)).toEqual(['a']);
 
-    const stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
+    // 点「确认导入」→ 合并入 storage,确认条消失
+    await pickButton(wrapper, '确认导入').trigger('click');
+    await flushPromises();
+    stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
     expect(stored.map((s) => s.id)).toEqual(['a', 'b']);
     expect(stored[0]!.name).toBe('文件甲');
+    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(false);
   });
 
-  it('confirm 取消 / 空文件不入 storage', async () => {
-    confirm.mockReturnValue(false);
+  it('导入:页内确认条点「取消」→ storage 不动,确认条消失', async () => {
     const a = style({ id: 'a' });
     const { ManageStylesBlock } = await freshFixture([a]);
     const wrapper = mount(ManageStylesBlock);
     await flushPromises();
 
     await chooseFile(wrapper, backupOf([style({ id: 'n1' })]));
-    let stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
-    expect(stored.map((s) => s.id)).toEqual(['a']);
+    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(true);
 
-    // 空文件:解析合法但覆盖 0 新增 0 → alert 提示,confirm 不弹,storage 不动
+    await pickButton(wrapper, '取消').trigger('click');
+    await flushPromises();
+    const stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
+    expect(stored.map((s) => s.id)).toEqual(['a']);
+    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(false);
+  });
+
+  it('空文件:解析合法但覆盖 0 新增 0 → 页内提示「没有可导入的内容」,不弹确认条,storage 不动', async () => {
+    const a = style({ id: 'a' });
+    const { ManageStylesBlock } = await freshFixture([a]);
+    const wrapper = mount(ManageStylesBlock);
+    await flushPromises();
+
     await chooseFile(wrapper, backupOf([]));
-    expect(confirm).toHaveBeenCalledTimes(1); // 仍是上面取消那一次
-    expect(alert).toHaveBeenCalledWith('备份文件没有样式,没有可导入的内容。');
-    stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
+
+    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(false);
+    const notice = wrapper.find('[data-testid="import-notice"]');
+    expect(notice.exists()).toBe(true);
+    expect(notice.text()).toContain('没有可导入的内容');
+    const stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
     expect(stored.map((s) => s.id)).toEqual(['a']);
   });
 
-  it('导入:非法文件 → alert 报第一条错,storage 不动,不弹 confirm', async () => {
+  it('导入:非法文件 → 页内提示报第一条错,不出确认条,storage 不动', async () => {
     const a = style({ id: 'a' });
     const { ManageStylesBlock } = await freshFixture([a]);
     const wrapper = mount(ManageStylesBlock);
@@ -121,15 +136,16 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
 
     await chooseFile(wrapper, backupOf([style({ id: 'a' }), style({ id: 'a', name: '重复' })]));
 
-    expect(confirm).not.toHaveBeenCalled();
-    expect(alert).toHaveBeenCalledTimes(1);
-    expect(alert.mock.calls[0]![0]).toContain('导入失败');
-    expect(alert.mock.calls[0]![0]).toContain('id 重复');
+    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(false);
+    const notice = wrapper.find('[data-testid="import-notice"]');
+    expect(notice.exists()).toBe(true);
+    expect(notice.text()).toContain('导入失败');
+    expect(notice.text()).toContain('id 重复');
     const stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
     expect(stored.map((s) => s.id)).toEqual(['a']);
   });
 
-  it('导入含编辑中样式:confirm 文案提示编辑会话结束,导入后 editingId 清空', async () => {
+  it('导入含编辑中样式:确认条文案提示编辑会话结束,确认后 editingId 清空', async () => {
     const a = style({ id: 'a' });
     const b = style({ id: 'b' });
     const { store, ManageStylesBlock } = await freshFixture([a, b]);
@@ -139,7 +155,8 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
 
     await chooseFile(wrapper, backupOf([style({ id: 'b', name: '文件乙' })]));
 
-    expect(confirm.mock.calls[0]![0]).toContain('编辑会话将结束');
+    expect(wrapper.find('[data-testid="import-confirm"]').text()).toContain('编辑会话将结束');
+    await pickButton(wrapper, '确认导入').trigger('click');
     await flushPromises();
     expect(store.editingId.value).toBeNull();
   });

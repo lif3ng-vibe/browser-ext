@@ -7,9 +7,15 @@ import StyleList from './StyleList.vue';
 import { useCustomStyles } from '../store';
 import { openManagerPanel } from '../openManagerPanel';
 import { backupFileName, downloadStylesFile, exportStyles, mergeById, parseBackup } from '../backup';
+import type { CustomStyle } from '../types';
 
 const store = useCustomStyles();
 const fileInput = ref<HTMLInputElement | null>(null);
+
+// 导入确认/提示走页内 UI:嵌入式 options(chrome://extensions 卡片「选项」= iframe)里
+// window.confirm/alert 被 Chrome 静默抑制,原生 dialog 不可依赖
+const pendingImport = ref<{ msg: string; styles: CustomStyle[] } | null>(null);
+const importNotice = ref<string | null>(null);
 
 /** 编辑动作 = 设定编辑对象 + 尝试唤起侧边栏;唤不起就提示手动开 */
 async function edit(id: string) {
@@ -39,29 +45,43 @@ function exportBackup() {
   );
 }
 
-/** 导入:严格解析 → 摘要 confirm → 按 id 合并;错则 alert 且不动 storage */
+/** 导入:严格解析 → 页内摘要确认条 → 按 id 合并;错则页内提示且不动 storage */
 async function onImportFile(e: Event) {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = ''; // 清空以允许重选同一文件
   if (!file) return;
 
+  pendingImport.value = null;
+  importNotice.value = null;
   const parsed = parseBackup(await file.text());
   if (!parsed.ok) {
-    window.alert(`导入失败:${parsed.error}`);
+    importNotice.value = `导入失败:${parsed.error}`;
     return;
   }
   const { overridden, added } = mergeById(store.styles.value, parsed.styles);
   if (overridden === 0 && added === 0) {
-    window.alert('备份文件没有样式,没有可导入的内容。');
+    importNotice.value = '备份文件没有样式,没有可导入的内容。';
     return;
   }
-  let msg = `导入将覆盖 ${overridden} 条、新增 ${added} 条样式,继续?`;
+  let msg = `导入将覆盖 ${overridden} 条、新增 ${added} 条样式。`;
   if (store.editingId.value !== null && parsed.styles.some((s) => s.id === store.editingId.value)) {
-    msg += '\n文件包含正在编辑的样式,导入后编辑会话将结束。';
+    msg += '文件包含正在编辑的样式,导入后编辑会话将结束。';
   }
-  if (!window.confirm(msg)) return;
-  await store.importStyles(parsed.styles);
+  pendingImport.value = { msg, styles: parsed.styles };
+}
+
+/** 确认条按钮:落盘导入并收起确认条 */
+async function confirmImport() {
+  const pending = pendingImport.value;
+  if (!pending) return;
+  pendingImport.value = null;
+  await store.importStyles(pending.styles);
+}
+
+/** 确认条按钮:放弃 */
+function cancelImport() {
+  pendingImport.value = null;
 }
 </script>
 
@@ -81,6 +101,37 @@ async function onImportFile(e: Event) {
         @remove="confirmRemove"
         @move="(id, d) => store.move(id, d)"
       />
+      <p
+        v-if="importNotice"
+        data-testid="import-notice"
+        class="text-muted-foreground text-sm"
+      >
+        {{ importNotice }}
+      </p>
+      <div
+        v-if="pendingImport"
+        data-testid="import-confirm"
+        class="border-border rounded-md border p-2"
+      >
+        <p class="text-sm">
+          {{ pendingImport.msg }}
+        </p>
+        <div class="mt-2 flex gap-2">
+          <Button
+            size="sm"
+            @click="confirmImport"
+          >
+            确认导入
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            @click="cancelImport"
+          >
+            取消
+          </Button>
+        </div>
+      </div>
       <Button
         variant="outline"
         class="w-full"
