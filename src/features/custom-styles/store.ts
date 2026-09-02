@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { storage } from 'wxt/utils/storage';
 import type { CustomStyle } from './types';
+import { mergeById } from './backup';
 
 const CUSTOM_STYLES_KEY = 'local:customStyles';
 const EDITING_KEY = 'local:customStyles/editing';
@@ -127,14 +128,36 @@ export function setEditing(id: string | null): Promise<void> {
   });
 }
 
+export interface ImportSummary {
+  overridden: number;
+  added: number;
+}
+
+/**
+ * 导入(issue #14):按 id 合并入 storage(mergeById 语义);经写队列串行。
+ * 不变式推广:文件替换了正在编辑的样式 → 清 editing 回清单(同 remove;队列 op 内直写)。
+ */
+export function importStyles(incoming: CustomStyle[]): Promise<ImportSummary> {
+  return enqueue(async () => {
+    const local = await customStylesItem.getValue();
+    const { merged, overridden, added } = mergeById(local, incoming);
+    await writeList(merged);
+    if (editingId.value !== null && incoming.some((s) => s.id === editingId.value)) {
+      await editingItem.setValue(null);
+      editingId.value = null;
+    }
+    return { overridden, added };
+  });
+}
+
 // ---- 对外 interface ----
 
 /**
  * 消费方获取 store(单例:多次调用同一份状态)。
- * styles 为只读语义(请勿直接改写;变更一律走 create/update/remove/move)。
+ * styles 为只读语义(请勿直接改写;变更一律走 create/update/remove/move/importStyles)。
  */
 export function useCustomStyles() {
-  return { styles, editingId, create, update, remove, move, setEditing };
+  return { styles, editingId, create, update, remove, move, setEditing, importStyles };
 }
 
 /** storage 变化订阅(语义化别名):供 content script 等非 CRUD 消费方使用(issue #18 Q4) */

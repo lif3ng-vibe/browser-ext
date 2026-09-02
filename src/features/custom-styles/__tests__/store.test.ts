@@ -106,3 +106,55 @@ describe('custom-styles store(单例,跨上下文同步)', () => {
     expect((stored.customStyles as unknown[]).length).toBe(3);
   });
 });
+
+describe('importStyles(#14 导入)', () => {
+  beforeEach(() => {
+    fakeBrowser.reset();
+  });
+
+  it('按 id 合并:同 id 覆盖位置不动,新增追加尾部,计数正确,ref 即时回填', async () => {
+    const api = await freshStore();
+    await vi.waitFor(() => expect(api.styles.value).toEqual([]));
+    const a = await api.create();
+    const b = await api.create();
+
+    const incoming = [
+      { ...a, name: '文件版' },
+      { id: 'new-1', name: '新', enabled: false, patterns: [], code: '', createdAt: 1, updatedAt: 1 },
+    ];
+    const summary = await api.importStyles(incoming);
+    expect(summary).toEqual({ overridden: 1, added: 1 });
+    expect(api.styles.value.map((s) => s.id)).toEqual([a.id, b.id, 'new-1']);
+    expect(api.styles.value[0]!.name).toBe('文件版');
+
+    const stored = await fakeBrowser.storage.local.get('customStyles');
+    expect((stored.customStyles as unknown[]).length).toBe(3);
+  });
+
+  it('幂等:同一清单导两次,第二次全为覆盖,清单不变', async () => {
+    const api = await freshStore();
+    await vi.waitFor(() => expect(api.styles.value).toEqual([]));
+    const a = await api.create();
+    const incoming = [{ ...a, name: '文件版' }];
+    await api.importStyles(incoming);
+    const second = await api.importStyles(incoming);
+    expect(second).toEqual({ overridden: 1, added: 0 });
+    expect(api.styles.value.map((s) => s.name)).toEqual(['文件版']);
+  });
+
+  it('不变式:文件替换了正在编辑的样式 → editingId 清空;未涉及 → 保留', async () => {
+    const api = await freshStore();
+    await vi.waitFor(() => expect(api.styles.value).toEqual([]));
+    const a = await api.create();
+    const b = await api.create();
+
+    // 导入只含 a' → 正在编辑的 b 不受影响
+    await api.setEditing(b.id);
+    await api.importStyles([{ ...a, name: '文件版' }]);
+    expect(api.editingId.value).toBe(b.id);
+
+    // 导入含 b' → 编辑会话结束(推广 remove 的不变式)
+    await api.importStyles([{ ...b, name: '文件乙' }]);
+    expect(api.editingId.value).toBeNull();
+  });
+});
