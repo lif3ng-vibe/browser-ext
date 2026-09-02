@@ -1,6 +1,6 @@
 // src/features/custom-styles/__tests__/backup.test.ts
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BACKUP_FORMAT, backupFileName, downloadStylesFile, exportStyles, parseBackup } from '../backup';
+import { BACKUP_FORMAT, backupFileName, downloadStylesFile, exportStyles, mergeById, parseBackup } from '../backup';
 import type { CustomStyle } from '../types';
 
 function style(over: Partial<CustomStyle>): CustomStyle {
@@ -154,5 +154,53 @@ describe('parseBackup(严格校验,全有或全无)', () => {
       styles: [{ ...good, extra: 1 }],
     });
     expect(parseBackup(raw)).toEqual({ ok: true, styles: [good] });
+  });
+});
+
+describe('mergeById(按 id 合并)', () => {
+  const a = style({ id: 'a' });
+  const b = style({ id: 'b', name: '乙' });
+  const c = style({ id: 'c', name: '丙' });
+
+  it('同 id 以文件为准,本地位置不动', () => {
+    const a2 = style({ id: 'a', name: '文件版', code: 'p{}' });
+    const r = mergeById([a, b], [a2]);
+    expect(r.merged).toEqual([a2, b]);
+    expect(r.overridden).toBe(1);
+    expect(r.added).toBe(0);
+  });
+
+  it('新增项按文件相对顺序追加尾部', () => {
+    const r = mergeById([a], [c, b]);
+    expect(r.merged.map((s) => s.id)).toEqual(['a', 'c', 'b']);
+    expect(r.overridden).toBe(0);
+    expect(r.added).toBe(2);
+  });
+
+  it('混合:覆盖 + 追加', () => {
+    const b2 = style({ id: 'b', name: '文件乙' });
+    const r = mergeById([a, b], [b2, c]);
+    expect(r.merged.map((s) => s.id)).toEqual(['a', 'b', 'c']);
+    expect(r.merged[1]!.name).toBe('文件乙');
+    expect(r.overridden).toBe(1);
+    expect(r.added).toBe(1);
+  });
+
+  it('幂等:同一文件导两次,第二次全为覆盖,清单不变', () => {
+    const first = mergeById([a, b], [b, c]);
+    const second = mergeById(first.merged, [b, c]);
+    expect(second.merged).toEqual(first.merged);
+    expect(second.overridden).toBe(2);
+    expect(second.added).toBe(0);
+  });
+
+  it('空文件:不覆盖不新增', () => {
+    const r = mergeById([a, b], []);
+    expect(r).toEqual({ merged: [a, b], overridden: 0, added: 0 });
+  });
+
+  it('空本地:全部新增', () => {
+    const r = mergeById([], [a, b]);
+    expect(r).toEqual({ merged: [a, b], overridden: 0, added: 2 });
   });
 });

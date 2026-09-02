@@ -111,3 +111,28 @@ export function parseBackup(raw: string): ParseResult {
   }
   return { ok: true, styles };
 }
+
+export interface MergeResult {
+  merged: CustomStyle[];
+  overridden: number;
+  added: number;
+}
+
+/**
+ * 按 id 合并(issue #14 冲突策略):同 id 以文件为准覆盖(本地顺序保留、位置不动),
+ * 文件新增项按文件相对顺序追加尾部;幂等。
+ * 前置:incoming 已过 parseBackup 校验(无重复 id)。
+ */
+export function mergeById(local: CustomStyle[], incoming: CustomStyle[]): MergeResult {
+  const incomingById = new Map(incoming.map((s) => [s.id, s]));
+  let overridden = 0;
+  const merged = local.map((s) => {
+    const repl = incomingById.get(s.id);
+    if (repl === undefined) return s;
+    overridden++;
+    return repl;
+  });
+  const localIds = new Set(local.map((s) => s.id));
+  const fresh = incoming.filter((s) => !localIds.has(s.id));
+  return { merged: [...merged, ...fresh], overridden, added: fresh.length };
+}
