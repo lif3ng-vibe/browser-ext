@@ -55,7 +55,7 @@ try {
   const fc = await fcPromise;
   await fc.setFiles(backupPath);
 
-  const banner = page.locator('[data-testid="import-confirm"]');
+  const banner = page.locator('[data-testid="confirm-banner"]');
   await banner.waitFor({ state: 'visible', timeout: 5000 });
   console.log('[banner text]', (await banner.innerText()).trim());
 

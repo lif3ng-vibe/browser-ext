@@ -7,21 +7,25 @@ import StyleList from './StyleList.vue';
 import { useCustomStyles } from '../store';
 import { openManagerPanel } from '../openManagerPanel';
 import { backupFileName, downloadStylesFile, exportStyles, mergeById, parseBackup } from '../backup';
-import type { CustomStyle } from '../types';
 
 const store = useCustomStyles();
 const fileInput = ref<HTMLInputElement | null>(null);
 
-// 导入确认/提示走页内 UI:嵌入式 options(chrome://extensions 卡片「选项」= iframe)里
+// 确认/提示走页内 UI:嵌入式 options(chrome://extensions 卡片「选项」= iframe)里
 // window.confirm/alert 被 Chrome 静默抑制,原生 dialog 不可依赖
-const pendingImport = ref<{ msg: string; styles: CustomStyle[] } | null>(null);
-const importNotice = ref<string | null>(null);
+interface PendingConfirm {
+  msg: string;
+  confirmLabel: string;
+  action: () => Promise<void>;
+}
+const pendingConfirm = ref<PendingConfirm | null>(null);
+const notice = ref<string | null>(null);
 
-/** 编辑动作 = 设定编辑对象 + 尝试唤起侧边栏;唤不起就提示手动开 */
+/** 编辑动作 = 设定编辑对象 + 尝试唤起侧边栏;唤不起给页内提示 */
 async function edit(id: string) {
   await store.setEditing(id);
   if (!(await openManagerPanel())) {
-    window.alert('未能自动打开侧边栏,请手动打开浏览器的扩展侧边栏查看编辑器。');
+    notice.value = '未能自动打开侧边栏,请手动打开浏览器的扩展侧边栏查看编辑器。';
   }
 }
 
@@ -30,11 +34,15 @@ async function createAndEdit() {
   await edit(s.id);
 }
 
-async function confirmRemove(id: string) {
+/** 删除请求 → 页内确认条(新请求取代任何待决确认,含导入确认) */
+function requestRemove(id: string) {
   const target = store.styles.value.find((s) => s.id === id);
   if (!target) return;
-  if (!window.confirm(`删除「${target.name}」?不可恢复。`)) return;
-  await store.remove(id);
+  pendingConfirm.value = {
+    msg: `删除「${target.name}」?不可恢复。`,
+    confirmLabel: '确认删除',
+    action: () => store.remove(id),
+  };
 }
 
 /** 导出:全量样式 → 备份文件下载(不加 downloads 权限) */
@@ -52,36 +60,42 @@ async function onImportFile(e: Event) {
   input.value = ''; // 清空以允许重选同一文件
   if (!file) return;
 
-  pendingImport.value = null;
-  importNotice.value = null;
+  pendingConfirm.value = null;
+  notice.value = null;
   const parsed = parseBackup(await file.text());
   if (!parsed.ok) {
-    importNotice.value = `导入失败:${parsed.error}`;
+    notice.value = `导入失败:${parsed.error}`;
     return;
   }
   const { overridden, added } = mergeById(store.styles.value, parsed.styles);
   if (overridden === 0 && added === 0) {
-    importNotice.value = '备份文件没有样式,没有可导入的内容。';
+    notice.value = '备份文件没有样式,没有可导入的内容。';
     return;
   }
   let msg = `导入将覆盖 ${overridden} 条、新增 ${added} 条样式。`;
   if (store.editingId.value !== null && parsed.styles.some((s) => s.id === store.editingId.value)) {
     msg += '文件包含正在编辑的样式,导入后编辑会话将结束。';
   }
-  pendingImport.value = { msg, styles: parsed.styles };
+  pendingConfirm.value = {
+    msg,
+    confirmLabel: '确认导入',
+    action: async () => {
+      await store.importStyles(parsed.styles);
+    },
+  };
 }
 
-/** 确认条按钮:落盘导入并收起确认条 */
-async function confirmImport() {
-  const pending = pendingImport.value;
+/** 确认条按钮:执行动作并收起 */
+async function acceptConfirm() {
+  const pending = pendingConfirm.value;
   if (!pending) return;
-  pendingImport.value = null;
-  await store.importStyles(pending.styles);
+  pendingConfirm.value = null;
+  await pending.action();
 }
 
 /** 确认条按钮:放弃 */
-function cancelImport() {
-  pendingImport.value = null;
+function cancelConfirm() {
+  pendingConfirm.value = null;
 }
 </script>
 
@@ -98,35 +112,35 @@ function cancelImport() {
         :styles="store.styles.value"
         @toggle="(id, on) => store.update(id, { enabled: on })"
         @edit="edit"
-        @remove="confirmRemove"
+        @remove="requestRemove"
         @move="(id, d) => store.move(id, d)"
       />
       <p
-        v-if="importNotice"
-        data-testid="import-notice"
+        v-if="notice"
+        data-testid="notice"
         class="text-muted-foreground text-sm"
       >
-        {{ importNotice }}
+        {{ notice }}
       </p>
       <div
-        v-if="pendingImport"
-        data-testid="import-confirm"
+        v-if="pendingConfirm"
+        data-testid="confirm-banner"
         class="border-border rounded-md border p-2"
       >
         <p class="text-sm">
-          {{ pendingImport.msg }}
+          {{ pendingConfirm.msg }}
         </p>
         <div class="mt-2 flex gap-2">
           <Button
             size="sm"
-            @click="confirmImport"
+            @click="acceptConfirm"
           >
-            确认导入
+            {{ pendingConfirm.confirmLabel }}
           </Button>
           <Button
             size="sm"
             variant="outline"
-            @click="cancelImport"
+            @click="cancelConfirm"
           >
             取消
           </Button>

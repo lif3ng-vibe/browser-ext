@@ -1,8 +1,12 @@
 // src/features/custom-styles/__tests__/ManageStylesBlock.test.ts
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import type { CustomStyle } from '../types';
+
+// 首个用例要支付一次性模块图编译开销(vi.resetModules 后动态导入组件树),
+// 默认 5s 在高负载机器上偶发超时;仅本文件放宽到 15s
+vi.setConfig({ testTimeout: 15_000 });
 
 // 组件与 store 共用同一份 fresh 模块注册表(vi.resetModules 后先后 import 即同一实例)
 async function freshFixture(seeded: CustomStyle[]) {
@@ -36,9 +40,14 @@ async function chooseFile(wrapper: VueWrapper, text: string) {
   await flushPromises();
 }
 
-describe('ManageStylesBlock 导出/导入(issue #14)', () => {
+describe('ManageStylesBlock 导出/导入/删除(确认页内化)', () => {
+  // MockInstance<typeof window.confirm>:window 与 globalThis 各声明一份 confirm,
+  // spy 实际类型是二者的交叉,比裸 ReturnType<typeof vi.spyOn> 更精确
+  let confirmSpy: MockInstance<typeof window.confirm>;
+
   beforeEach(() => {
     fakeBrowser.reset();
+    confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -79,21 +88,19 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
     await flushPromises();
     await chooseFile(wrapper, backupOf([style({ id: 'a', name: '文件甲' }), b]));
 
-    // 页内确认条出现,带摘要文案;未导入
-    const banner = wrapper.find('[data-testid="import-confirm"]');
+    const banner = wrapper.find('[data-testid="confirm-banner"]');
     expect(banner.exists()).toBe(true);
     expect(banner.text()).toContain('覆盖 1 条');
     expect(banner.text()).toContain('新增 1 条');
     let stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
     expect(stored.map((s) => s.id)).toEqual(['a']);
 
-    // 点「确认导入」→ 合并入 storage,确认条消失
     await pickButton(wrapper, '确认导入').trigger('click');
     await flushPromises();
     stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
     expect(stored.map((s) => s.id)).toEqual(['a', 'b']);
     expect(stored[0]!.name).toBe('文件甲');
-    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="confirm-banner"]').exists()).toBe(false);
   });
 
   it('导入:页内确认条点「取消」→ storage 不动,确认条消失', async () => {
@@ -103,16 +110,16 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
     await flushPromises();
 
     await chooseFile(wrapper, backupOf([style({ id: 'n1' })]));
-    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="confirm-banner"]').exists()).toBe(true);
 
     await pickButton(wrapper, '取消').trigger('click');
     await flushPromises();
     const stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
     expect(stored.map((s) => s.id)).toEqual(['a']);
-    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="confirm-banner"]').exists()).toBe(false);
   });
 
-  it('空文件:解析合法但覆盖 0 新增 0 → 页内提示「没有可导入的内容」,不弹确认条,storage 不动', async () => {
+  it('空文件:解析合法但覆盖 0 新增 0 → 页内提示「没有可导入的内容」,不出确认条,storage 不动', async () => {
     const a = style({ id: 'a' });
     const { ManageStylesBlock } = await freshFixture([a]);
     const wrapper = mount(ManageStylesBlock);
@@ -120,8 +127,8 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
 
     await chooseFile(wrapper, backupOf([]));
 
-    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(false);
-    const notice = wrapper.find('[data-testid="import-notice"]');
+    expect(wrapper.find('[data-testid="confirm-banner"]').exists()).toBe(false);
+    const notice = wrapper.find('[data-testid="notice"]');
     expect(notice.exists()).toBe(true);
     expect(notice.text()).toContain('没有可导入的内容');
     const stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
@@ -136,8 +143,8 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
 
     await chooseFile(wrapper, backupOf([style({ id: 'a' }), style({ id: 'a', name: '重复' })]));
 
-    expect(wrapper.find('[data-testid="import-confirm"]').exists()).toBe(false);
-    const notice = wrapper.find('[data-testid="import-notice"]');
+    expect(wrapper.find('[data-testid="confirm-banner"]').exists()).toBe(false);
+    const notice = wrapper.find('[data-testid="notice"]');
     expect(notice.exists()).toBe(true);
     expect(notice.text()).toContain('导入失败');
     expect(notice.text()).toContain('id 重复');
@@ -155,9 +162,94 @@ describe('ManageStylesBlock 导出/导入(issue #14)', () => {
 
     await chooseFile(wrapper, backupOf([style({ id: 'b', name: '文件乙' })]));
 
-    expect(wrapper.find('[data-testid="import-confirm"]').text()).toContain('编辑会话将结束');
+    expect(wrapper.find('[data-testid="confirm-banner"]').text()).toContain('编辑会话将结束');
     await pickButton(wrapper, '确认导入').trigger('click');
     await flushPromises();
     expect(store.editingId.value).toBeNull();
+  });
+
+  it('删除:页内确认条;取消不动;确认删除落 storage;全程不用原生 dialog', async () => {
+    const a = style({ id: 'a', name: '甲' });
+    const { ManageStylesBlock } = await freshFixture([a]);
+    const wrapper = mount(ManageStylesBlock);
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="删除"]').trigger('click');
+    const banner = wrapper.find('[data-testid="confirm-banner"]');
+    expect(banner.exists()).toBe(true);
+    expect(banner.text()).toContain('删除「甲」?不可恢复。');
+    let stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
+    expect(stored.map((s) => s.id)).toEqual(['a']);
+
+    await pickButton(wrapper, '取消').trigger('click');
+    expect(wrapper.find('[data-testid="confirm-banner"]').exists()).toBe(false);
+    stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
+    expect(stored.map((s) => s.id)).toEqual(['a']);
+
+    await wrapper.find('button[aria-label="删除"]').trigger('click');
+    await pickButton(wrapper, '确认删除').trigger('click');
+    await flushPromises();
+    stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
+    expect(stored).toEqual([]);
+    expect(wrapper.find('[data-testid="confirm-banner"]').exists()).toBe(false);
+    expect(confirmSpy).not.toHaveBeenCalled();
+  });
+
+  it('确认互斥:导入确认待决时点删除 → 确认条替换为删除确认', async () => {
+    const a = style({ id: 'a', name: '甲' });
+    const { ManageStylesBlock } = await freshFixture([a]);
+    const wrapper = mount(ManageStylesBlock);
+    await flushPromises();
+
+    await chooseFile(wrapper, backupOf([style({ id: 'n1' })]));
+    expect(wrapper.find('[data-testid="confirm-banner"]').exists()).toBe(true);
+
+    await wrapper.find('button[aria-label="删除"]').trigger('click');
+    const banner = wrapper.find('[data-testid="confirm-banner"]');
+    expect(banner.exists()).toBe(true);
+    expect(banner.text()).toContain('删除「甲」?不可恢复。');
+    expect(banner.text()).not.toContain('覆盖');
+
+    await pickButton(wrapper, '取消').trigger('click');
+    await flushPromises();
+    const stored = (await fakeBrowser.storage.local.get('customStyles')).customStyles as CustomStyle[];
+    expect(stored.map((s) => s.id)).toEqual(['a']);
+  });
+
+  it('删除编辑中样式:确认后 editingId 清空', async () => {
+    const a = style({ id: 'a', name: '甲' });
+    const { store, ManageStylesBlock } = await freshFixture([a]);
+    const wrapper = mount(ManageStylesBlock);
+    await flushPromises();
+    await store.setEditing(a.id);
+
+    await wrapper.find('button[aria-label="删除"]').trigger('click');
+    await pickButton(wrapper, '确认删除').trigger('click');
+    await flushPromises();
+
+    expect(store.editingId.value).toBeNull();
+  });
+
+  it('侧边栏唤起失败:页内提示条出现(替代被抑制的 alert)', async () => {
+    const a = style({ id: 'a', name: '甲' });
+    const { ManageStylesBlock } = await freshFixture([a]);
+    // 确定性走「唤不起」路径:sidePanel/sidebarAction 均无 → openManagerPanel 返回 false
+    const stub = fakeBrowser as unknown as Record<string, unknown>;
+    const realSidePanel = stub.sidePanel;
+    const realSidebarAction = stub.sidebarAction;
+    stub.sidePanel = undefined;
+    stub.sidebarAction = undefined;
+    const wrapper = mount(ManageStylesBlock);
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="编辑"]').trigger('click');
+    await flushPromises();
+
+    const notice = wrapper.find('[data-testid="notice"]');
+    expect(notice.exists()).toBe(true);
+    expect(notice.text()).toContain('未能自动打开侧边栏');
+
+    stub.sidePanel = realSidePanel;
+    stub.sidebarAction = realSidebarAction;
   });
 });
