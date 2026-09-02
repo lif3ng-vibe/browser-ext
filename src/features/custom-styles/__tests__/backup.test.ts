@@ -125,6 +125,7 @@ describe('parseBackup(严格校验,全有或全无)', () => {
     expect(parseBackup(wrap(env({ id: 'a', name: 'n' })))).toEqual({ ok: false, error: '第 1 条样式「a」:enabled 应为布尔值' });
     expect(parseBackup(wrap(env({ id: 'a', name: 'n', enabled: true })))).toEqual({ ok: false, error: '第 1 条样式「a」:patterns 应为数组' });
     expect(parseBackup(wrap(env({ id: 'a', name: 'n', enabled: true, patterns: 'x' })))).toEqual({ ok: false, error: '第 1 条样式「a」:patterns 应为数组' });
+    expect(parseBackup(wrap(env({ id: 'a', name: 'n', enabled: true, patterns: [42] })))).toEqual({ ok: false, error: '第 1 条样式「a」:含非法作用域 pattern(42)' });
     expect(parseBackup(wrap(env({ id: 'a', name: 'n', enabled: true, patterns: ['nonsense'] }))))
       .toEqual({ ok: false, error: '第 1 条样式「a」:含非法作用域 pattern(nonsense)' });
     expect(parseBackup(wrap(env({ id: 'a', name: 'n', enabled: true, patterns: [] })))).toEqual({ ok: false, error: '第 1 条样式「a」:code 应为字符串' });

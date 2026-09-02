@@ -17,7 +17,7 @@ const editingItem = storage.defineItem<string | null>(EDITING_KEY, { fallback: n
  * - 模块级单例:每页一份 watcher(此前侧边栏页 2 实例 × 2 watcher = 4 份)
  * - 写路径经全局队列串行(Q3),消跨上下文 read-modify-write 丢更新
  * - 本地写即时回填 ref(Q2);自己写入的回声按「载荷 = 最后本地写」跳过(时序无关)
- * - 不变式「删除→清 editing」唯一一处(Q1),在 remove 的队列 op 内直写(队列不可嵌套)
+ * - 不变式「编辑对象被删/被导入替换→清 editing」两处:remove 与 importStyles,均在队列 op 内直写(队列不可嵌套)
  */
 
 // ---- 模块级状态(单例本体) ----
