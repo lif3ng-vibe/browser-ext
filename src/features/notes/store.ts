@@ -50,7 +50,8 @@ const ghosts = new Map<string, Note>();
 
 export function create(url: string | null, text = ''): Promise<Note> {
   const now = Date.now();
-  const note: Note = { id: crypto.randomUUID(), url, text, createdAt: now, updatedAt: now };
+  // 归一化是 store 职责:绑定键一律存去 hash 的 URL,消费方无需预洗
+  const note: Note = { id: crypto.randomUUID(), url: url === null ? null : normalizeUrl(url), text, createdAt: now, updatedAt: now };
   if (text === '') {
     ghosts.set(note.id, note); // 幽灵态
     return Promise.resolve(note);
@@ -86,6 +87,22 @@ export function remove(id: string): Promise<void> {
   });
 }
 
+/** updatedAt 倒序:最近动过的恒在最上(查询侧固定排序,规格 #21) */
+function byRecency(list: Note[]): Note[] {
+  return [...list].sort((x, y) => y.updatedAt - x.updatedAt);
+}
+
+/** 按归一化 URL 查页面便签(hash 差异不区分;query/path 不同即不同页) */
+export async function getByPage(url: string): Promise<Note[]> {
+  const key = normalizeUrl(url);
+  return byRecency((await notesItem.getValue()).filter((n) => n.url === key));
+}
+
+/** 查全局便签(url 为 null 的取值特例) */
+export async function getGlobal(): Promise<Note[]> {
+  return byRecency((await notesItem.getValue()).filter((n) => n.url === null));
+}
+
 // ---- 对外 interface ----
 
 const notes = ref<Note[]>([]);
@@ -96,5 +113,5 @@ void notesItem.getValue().then((v) => (notes.value = v ?? []));
  * notes 为只读语义(请勿直接改写;变更一律走 create/update/remove)。
  */
 export function useNotes() {
-  return { notes, create, update, remove };
+  return { notes, create, update, remove, getByPage, getGlobal };
 }
