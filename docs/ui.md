@@ -93,6 +93,10 @@ pnpm build -b chrome && node scripts/acceptance.mjs
 
 规则逐行匹配,注释只豁免紧随其后的那一处;`tokens-ignore` 不带 `: 理由` 不算豁免。token 真源 `tokens.css` 与 `tailwind.css` 天然在 stylelint override 里放行,不需要注释。
 
-## 5. 暂缓(等第一个 content UI feature)
+## 5. Shadow DOM(content UI 方案;#23 便签悬浮卡片首落地)
 
-shadow DOM 完整方案(`@property` 剥离注入宿主、变量挂 shadow host、rem 基准修复)在第一个带 content UI 的 feature(大概率 #2/#3)拷问时定,届时补章。已预留:语义 token 的 `--lif3ng-` 前缀与 WXT `createShadowRootUi` + `cssInjectionMode: 'ui'` 的组合路径,见调研报告 §4。
+- **组合**:`createShadowRootUi` + `cssInjectionMode: 'ui'` + `isolateEvents: true`;content script 只 `matches: ['<all_urls>']`(WXT `all_frames` 默认 false,天然仅顶层 frame)。
+- **主题变量挂哪**:`uiContainer`(shadow tree 内部包裹元素),不是 shadow host。原因:WXT 把入口 CSS 的 `:root` 重写为 `:host`,只有默认主题块(`:root, [data-theme='light']`)能命中 host;各主题的 `[data-theme='x']` 块只能匹配 shadow tree 内元素。变量定义在 uiContainer 上经继承覆盖全部子元素;`all: initial` 不重置 custom properties,变量照常工作(调研 §4.2 的第二落点)。
+- **解析与跟随**:内建在 `shared/theme/applyToElement.ts` 的 `applyThemeToElementTracked(el)`(解析值 + `.dark` 类 + storage/系统明暗实时跟随),返回停止函数。feature 代码不经手 `lif3ng/*` 键。
+- **`@property`**(Tailwind v4 在 shadow root 失效的官方 issue):WXT `splitShadowRootCss` 已自动把 `@property` 剥出注入 document,无需手工处理。
+- **rem 基准**:`all: initial` 不重置 rem,宿主页改过 `<html>` 字号时 UI 跟着缩放——v1 接受。
