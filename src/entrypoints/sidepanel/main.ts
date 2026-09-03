@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import ManagerPanel from '@/features/custom-styles/ManagerPanel.vue';
+import App from './App.vue';
 import '@/shared/theme/tailwind.css';
 
-createApp(ManagerPanel).mount('#app');
+createApp(App).mount('#app');
