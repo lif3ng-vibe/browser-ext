@@ -60,7 +60,7 @@ _Avoid_: 设置区块互相引用、把组合逻辑写进 Feature 内部
 ### 自定义样式
 
 **自定义样式(Custom Style)**:
-一条命名的自包含用户 CSS,绑定一组作用域并带启用状态,住 `src/features/custom-styles/`。v1 只收 CSS,不收 JS。
+一条命名的自包含用户 CSS,绑定一组作用域并带启用状态,住 `src/features/custom-styles/`。v1 只收 CSS,不收 JS(JS 注入是独立的用户脚本 Feature)。
 _Avoid_: "皮肤"、主题(注入宿主页面的东西不是本插件的 Theme)
 
 **作用域(Scope)**:
@@ -116,6 +116,24 @@ _Avoid_: 把它当成 popup 的一部分、与侧栏的"当前页便签"视图�
 **面板聚合(Panel Aggregation)**:
 sidepanel 薄壳以 tab 切换组合各 Feature 的面板视图,组合逻辑只住薄壳。
 _Avoid_: Feature 直接占据 sidepanel、把组合逻辑写进 Feature 内部
+
+### 用户脚本
+
+**用户脚本(User Script)**:
+一段命名、可启停的自写 JS,绑定一组作用域,由平台 userScripts API 注册注入,住 `src/features/user-scripts/`。v1 是裸注入器:无 GM_* API、无元数据头、无脚本订阅。
+_Avoid_: 把它当 custom-styles 的 JS 版(注入管线完全独立)、GM/Tampermonkey 完整模拟
+
+**执行时机(Run At)**:
+用户脚本的注入档位:`document_start | document_end | document_idle`,脚本级设置,默认 `document_idle`。
+_Avoid_: 全局一刀切(时机错了脚本直接废)
+
+**单次执行(Inject-Once)**:
+用户脚本的生效语义:一个页面一次加载,每条命中脚本恰好执行一次;保存/启停后改动在下次加载生效。重放已打开页面 = 二次执行,永不自动做。
+_Avoid_: "即时生效"(JS 跑过就是跑过了,无法撤销执行)、SPA 软导航重跑(脚本自己监听换页)
+
+**注册表(Registry)**:
+平台 userScripts API 里的已注册脚本集合,纯派生态:storage 唯一事实源,启动与变更时全量重建(`persistAcrossSessions: false`),随时可弃可重建。
+_Avoid_: 让注册表当第二事实源、差量同步漂移
 
 ### 决策留痕
 
