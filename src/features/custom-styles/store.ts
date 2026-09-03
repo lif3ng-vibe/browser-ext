@@ -33,13 +33,38 @@ let lastLocalWrite = '';
 
 // ---- 初始装载 + 外部变化同步 ----
 
-void customStylesItem.getValue().then((v) => (styles.value = v ?? []));
+/**
+ * 读路径防御:storage 值不可信(fallback 只兜「键不存在」,兜不了「值是坏的」)。
+ * 历史遗留坏数据(patterns 为字符串)曾让 StyleEditor setup 的 join 白屏侧边栏。
+ * 归一化语义:非对象条目丢弃;patterns 非数组归一为 [](词汇表既有语义:空列表不参与自动注入,样式保留可编辑)。
+ */
+function normalizeStyles(v: unknown): CustomStyle[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter(
+      (s): s is CustomStyle => !!s && typeof s === 'object' && typeof (s as CustomStyle).id === 'string',
+    )
+    .map((s) => ({ ...s, patterns: Array.isArray(s.patterns) ? s.patterns : [] }));
+}
+
+/** 归一化发现坏数据 → 修复写回一次(写回的回声再进来时值已干净,天然收敛) */
+function repairIfCorrupted(next: CustomStyle[], raw: unknown): void {
+  if (raw === undefined || JSON.stringify(next) === JSON.stringify(raw)) return;
+  void customStylesItem.setValue(next);
+}
+
+void customStylesItem.getValue().then((raw) => {
+  const next = normalizeStyles(raw);
+  styles.value = next;
+  repairIfCorrupted(next, raw);
+});
 void editingItem.getValue().then((v) => (editingId.value = v));
 
-void customStylesItem.watch((v) => {
-  const next = v ?? [];
+void customStylesItem.watch((raw) => {
+  const next = normalizeStyles(raw);
   if (JSON.stringify(next) === lastLocalWrite) return; // 自己写的回声,ref 已即时回填
   styles.value = next;
+  repairIfCorrupted(next, raw);
   // 外部上下文删除了正在编辑的样式 → 回到清单视图
   if (editingId.value && !next.some((s) => s.id === editingId.value)) {
     void setEditing(null);

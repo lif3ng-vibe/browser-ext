@@ -105,6 +105,52 @@ describe('custom-styles store(单例,跨上下文同步)', () => {
     const stored = await fakeBrowser.storage.local.get('customStyles');
     expect((stored.customStyles as unknown[]).length).toBe(3);
   });
+
+  it('读路径防御:storage 坏记录(patterns 非数组)装载时归一为 [] 并修复写回', async () => {
+    // 历史遗留坏数据:patterns 为字符串 → 此前 StyleEditor setup 的 join 直接炸(打开侧边栏即白屏)
+    await fakeBrowser.storage.local.set({
+      customStyles: [
+        { id: 'bad', name: '坏', enabled: true, patterns: '*://a.com/*', code: '', createdAt: 1, updatedAt: 1 },
+        { id: 'good', name: '好', enabled: true, patterns: ['<all_urls>'], code: '', createdAt: 1, updatedAt: 1 },
+      ],
+    });
+    const api = await freshStore();
+
+    await vi.waitFor(() => expect(api.styles.value).toHaveLength(2));
+    expect(api.styles.value.find((s) => s.id === 'bad')!.patterns).toEqual([]);
+    expect(api.styles.value.find((s) => s.id === 'good')!.patterns).toEqual(['<all_urls>']);
+
+    // 修复写回:storage 里的坏值也归一
+    await vi.waitFor(async () => {
+      const stored = await fakeBrowser.storage.local.get('customStyles');
+      const list = stored.customStyles as { id: string; patterns: string[] }[];
+      expect(list.find((s) => s.id === 'bad')!.patterns).toEqual([]);
+      expect(list.find((s) => s.id === 'good')!.patterns).toEqual(['<all_urls>']);
+    });
+  });
+
+  it('读路径防御:外部上下文写入坏 patterns → watch 回填同样归一化', async () => {
+    const api = await freshStore();
+    await vi.waitFor(() => expect(api.styles.value).toEqual([]));
+
+    await fakeBrowser.storage.local.set({
+      customStyles: [{ id: 'x', name: 'n', enabled: true, patterns: 'nonsense', code: '', createdAt: 1, updatedAt: 1 }],
+    });
+
+    await vi.waitFor(() => expect(api.styles.value).toHaveLength(1));
+    expect(api.styles.value[0]!.patterns).toEqual([]);
+  });
+
+  it('读路径防御:非对象条目丢弃;整体非数组归一为空', async () => {
+    await fakeBrowser.storage.local.set({
+      customStyles: [null, 'bad', { id: 'ok', name: 'n', enabled: true, patterns: [], code: '', createdAt: 1, updatedAt: 1 }],
+    });
+    const api = await freshStore();
+    await vi.waitFor(() => expect(api.styles.value.map((s) => s.id)).toEqual(['ok']));
+
+    await fakeBrowser.storage.local.set({ customStyles: 'garbage' });
+    await vi.waitFor(() => expect(api.styles.value).toEqual([]));
+  });
 });
 
 describe('importStyles(#14 导入)', () => {
