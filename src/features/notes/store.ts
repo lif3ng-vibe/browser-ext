@@ -117,7 +117,8 @@ function remove(id: string): Promise<void> {
   });
 }
 
-/** 总开关写入口:即时回填 + 落 storage(设置区块消费;watch 让 content script 即时跟随) */
+/** 总开关写入口:即时回填 + 落 storage(设置区块消费;watch 让 content script 即时跟随)。
+ *  单写布尔,无 read-modify-write,不经 writeQueue(CRUD 队列只护列表读改写) */
 function setEnabled(v: boolean): Promise<void> {
   enabled.value = v;
   return enabledItem.setValue(v);

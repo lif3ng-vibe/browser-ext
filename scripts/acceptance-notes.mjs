@@ -66,14 +66,12 @@ const cardTextarea = (p) =>
   p.evaluate(() => document.querySelector('lif3ng-notes')?.shadowRoot?.querySelector('textarea')?.value ?? null);
 
 try {
-  const ctx = browser;
   const extId = extensionIdFromKey(resolve(extPath, 'manifest.json'));
   console.log('extension id:', extId);
-
   const url = (f) => `chrome-extension://${extId}/${f}`;
 
   // options 页:后续所有操作的控制台
-  const options = await ctx.newPage();
+  const options = await browser.newPage();
   options.on('pageerror', (e) => console.log('[pageerror]', String(e).slice(0, 200)));
   await options.goto(url('options.html'));
   await options.waitForSelector('#notes-enabled', { timeout: 30000 }).catch(async () => {
@@ -99,7 +97,7 @@ try {
   await options.evaluate((n) => chrome.storage.local.set({ notes: n }), notes);
 
   // -- 悬浮卡片注入 --
-  const card = await ctx.newPage();
+  const card = await browser.newPage();
   await card.goto(pageA);
   // 宿主元素 inline 零尺寸,Playwright 视为 hidden;等 attached,实际断言走 shadow root 查询
   await card.waitForSelector('lif3ng-notes', { timeout: 15000, state: 'attached' });
@@ -138,6 +136,25 @@ try {
   check('总开关关 → 悬浮卡片即时消失(跨页 storage.watch)', !(await cardDot(card)));
   check('总开关状态落 storage.local', (await options.getAttribute('#notes-enabled', 'aria-checked')) === 'false');
 
+  // 关闭态下侧栏/便签板不受影响(AC:数据保留,只停页面注入)
+  const sidepanelOff = await browser.newPage();
+  await sidepanelOff.goto(url('sidepanel.html'));
+  await sidepanelOff.waitForSelector('[role="tab"]', { timeout: 15000 });
+  await sidepanelOff.getByRole('tab', { name: '便签' }).click();
+  await sidepanelOff.waitForSelector('[data-testid="notes-tab-content"]', { timeout: 15000 });
+  const globalOff = await sidepanelOff.$eval('[data-testid="global-notes"]', (el) => el.textContent);
+  check('关闭态:侧栏便签 tab 照常渲染(不受总开关影响)', globalOff.includes('全局便签'));
+  await sidepanelOff.close();
+
+  const boardOff = await browser.newPage();
+  await boardOff.goto(url('notes-board.html'));
+  await boardOff.waitForSelector('textarea', { timeout: 15000 });
+  await boardOff.waitForFunction(() =>
+    [...document.querySelectorAll('textarea')].some((t) => t.value === '全局便签一条'),
+  );
+  check('关闭态:便签板照常渲染(不受总开关影响)', true);
+  await boardOff.close();
+
   await options.click('#notes-enabled');
   await card.waitForFunction(() =>
     document.querySelector('lif3ng-notes')?.shadowRoot?.querySelector('[data-testid="note-dot"]') !== null,
@@ -146,7 +163,7 @@ try {
   check('总开关开 → 悬浮卡片恢复', await cardDot(card));
 
   // -- 侧栏聚合(以 tab 打开 sidepanel.html):切到便签 tab,本页/全局分区渲染 --
-  const sidepanel = await ctx.newPage();
+  const sidepanel = await browser.newPage();
   await sidepanel.goto(url('sidepanel.html'));
   await sidepanel.waitForSelector('[role="tab"]', { timeout: 15000 });
   await sidepanel.getByRole('tab', { name: '便签' }).click();
@@ -156,7 +173,7 @@ try {
   await sidepanel.screenshot({ path: resolve(OUT, 'sidepanel.png') });
 
   // -- 便签板:全局便签主场(文本在 textarea value 里,不能走 text= 定位器) --
-  const board = await ctx.newPage();
+  const board = await browser.newPage();
   await board.goto(url('notes-board.html'));
   await board.waitForSelector('textarea', { timeout: 15000 });
   await board.waitForFunction(() =>
