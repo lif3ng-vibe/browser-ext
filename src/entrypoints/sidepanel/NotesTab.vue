@@ -1,27 +1,16 @@
-<!-- 便签 tab 最小本页列表(issue #24 T3;完全体 #25 T4)。
-     住薄壳而非 notes Feature:v1 最小实现按 #21「组合逻辑只住薄壳」,
-     T4 完全体(双分区+空态引导)再评估去留。useActiveTab 镜像:
-     下沉 shared 是正解,但会改 custom-styles 目录、违反本票「Feature 零改动」AC;
-     临时镜像,T4 时下沉 src/shared 后双方迁移。 -->
+<!-- 便签 tab(issue #24 T3 最小列表;#25 T4 长成定稿双分区形态)。
+     住薄壳而非 notes Feature:#21「组合逻辑只住薄壳」,侧栏聚合的视图组合归薄壳。 -->
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import type { Browser } from 'wxt/browser';
 import { Button } from '@/shared/ui/button';
+import { useActiveTab } from '@/shared/useActiveTab';
 import NoteEditor from '@/features/notes/components/NoteEditor.vue';
 import { useNotes } from '@/features/notes/store';
 import type { Note } from '@/features/notes/types';
 
 const store = useNotes();
 
-// useActiveTab 镜像(custom-styles 先例):激活/URL 变化/关闭都重查
-const activeTab = ref<Browser.tabs.Tab | undefined>();
-const sync = async () => {
-  const [active] = await browser.tabs.query({ active: true, currentWindow: true });
-  activeTab.value = active;
-};
-void sync();
-browser.tabs.onActivated.addListener(() => void sync());
-browser.tabs.onUpdated.addListener(() => void sync());
+const activeTab = useActiveTab();
 
 // 视图派生(NoteCard 同款):storage 重查 wholesale 替换;幽灵(未输入)只在创建方上下文乐观展示
 const pageNotes = ref<Note[]>([]);
