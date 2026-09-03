@@ -4,11 +4,17 @@ import PanelOpenButton from '@/features/custom-styles/components/PanelOpenButton
 import PopupStyleToggle from '@/features/custom-styles/components/PopupStyleToggle.vue';
 import ThemeQuickSwitch from '@/features/settings/components/ThemeQuickSwitch.vue';
 import { Button } from '@/shared/ui/button';
-import { Settings } from '@lucide/vue';
+import { Settings, StickyNote } from '@lucide/vue';
 import { ref } from 'vue';
+import PopupPageNotes from './PopupPageNotes.vue';
 
 async function openSettings() {
   await browser.runtime.openOptionsPage();
+}
+
+/** 便签板入口(issue #26,规格 #21 故事 24):独立小窗,约 320×480 */
+function openNotesBoard() {
+  window.open(browser.runtime.getURL('/notes-board.html'), 'notes-board', 'width=320,height=480');
 }
 
 const hint = ref(false);
@@ -31,6 +37,14 @@ function showHint(text: string) {
         browser-ext
       </h1>
       <div class="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="打开便签板"
+          @click="openNotesBoard"
+        >
+          <StickyNote class="text-muted-foreground size-4" />
+        </Button>
         <PanelOpenButton @hint="showHint" />
         <Button
           variant="ghost"
@@ -46,6 +60,8 @@ function showHint(text: string) {
     <ThemeQuickSwitch />
 
     <PopupStyleToggle />
+
+    <PopupPageNotes />
 
     <p class="text-muted-foreground mt-3 text-xs">
       {{ hint ? hintText : '完整设置在「打开设置」里。' }}
