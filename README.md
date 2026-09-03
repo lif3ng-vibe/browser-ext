@@ -34,6 +34,11 @@ pnpm test           # Vitest
 
 版本单一来源是 git tag(`v0.x.x`):CI 从 tag 注入 manifest 版本,`package.json` 固定 `0.0.0`(见 [ADR-0001](docs/adr/0001-wxt-vue3-vite-ts.md))。
 
+## 功能清单
+
+- **主题系统**:四主题(light/dark/vercel-light/vercel-dark)+ 跟随系统,popup 快切,所有扩展页面统一换肤
+- **自定义样式**(类 Stylish):按域名/全局注入用户 CSS,侧栏所见即所得编辑 + 预览,导入导出备份
+- **便签**:全局便签随处可记;页面便签绑精确 URL 随页浮现(悬浮卡片,SPA 跟随);侧栏聚合视图 + 便签板独立小窗;设置页总开关(关闭只停页面浮现,数据保留)
 
 ## 决策留痕
 

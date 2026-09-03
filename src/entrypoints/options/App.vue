@@ -3,6 +3,7 @@
 import ThemeSettingsBlock from '@/features/settings/components/ThemeSettingsBlock.vue';
 import EditorSettingsBlock from '@/features/settings/components/EditorSettingsBlock.vue';
 import ManageStylesBlock from '@/features/custom-styles/components/ManageStylesBlock.vue';
+import NotesSettingsBlock from '@/features/notes/components/NotesSettingsBlock.vue';
 </script>
 
 <template>
@@ -14,6 +15,7 @@ import ManageStylesBlock from '@/features/custom-styles/components/ManageStylesB
       <ThemeSettingsBlock />
       <EditorSettingsBlock />
       <ManageStylesBlock />
+      <NotesSettingsBlock />
     </div>
   </main>
 </template>

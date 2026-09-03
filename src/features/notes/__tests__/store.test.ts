@@ -176,4 +176,17 @@ describe('notes store:跨上下文(镜像 custom-styles 并发用例风格)', ()
     await fakeBrowser.storage.local.set({ 'notes:enabled': false });
     await vi.waitFor(() => expect(api.enabled.value).toBe(false));
   });
+
+  it('总开关写入位:setEnabled 落 storage 并即时回填 ref(外部 watch 也能看到)', async () => {
+    const api = await freshStore();
+    await vi.waitFor(() => expect(api.enabled.value).toBe(true));
+
+    await api.setEnabled(false);
+    expect(api.enabled.value).toBe(false);
+    expect((await fakeBrowser.storage.local.get('notes:enabled'))['notes:enabled']).toBe(false);
+
+    await api.setEnabled(true);
+    expect(api.enabled.value).toBe(true);
+    expect((await fakeBrowser.storage.local.get('notes:enabled'))['notes:enabled']).toBe(true);
+  });
 });

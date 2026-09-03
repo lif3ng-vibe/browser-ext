@@ -100,3 +100,4 @@ pnpm build -b chrome && node scripts/acceptance.mjs
 - **解析与跟随**:内建在 `shared/theme/applyToElement.ts` 的 `applyThemeToElementTracked(el)`(解析值 + `.dark` 类 + storage/系统明暗实时跟随),返回停止函数。feature 代码不经手 `lif3ng/*` 键。
 - **`@property`**(Tailwind v4 在 shadow root 失效的官方 issue):WXT `splitShadowRootCss` 已自动把 `@property` 剥出注入 document,无需手工处理。
 - **rem 基准**:`all: initial` 不重置 rem,宿主页改过 `<html>` 字号时 UI 跟着缩放——v1 接受。
+- **隔离世界与 SPA 跟随**(#27 验收抓出):content script 的 `history.pushState` 补丁只改隔离世界自己的对象,页面路由器(页面世界的 pushState)无事件可听。`location` 跨世界共享,`useCurrentUrl` 以 300ms href 轮询兜底(popstate/hashchange 仍是最快通道);零权限、跨浏览器、不受页面 CSP 制约。

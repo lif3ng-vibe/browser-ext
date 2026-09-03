@@ -117,6 +117,12 @@ function remove(id: string): Promise<void> {
   });
 }
 
+/** 总开关写入口:即时回填 + 落 storage(设置区块消费;watch 让 content script 即时跟随) */
+function setEnabled(v: boolean): Promise<void> {
+  enabled.value = v;
+  return enabledItem.setValue(v);
+}
+
 // ---- 查询(只读派生,不写 storage) ----
 
 /** updatedAt 倒序:最近动过的恒在最上(查询侧固定排序,规格 #21) */
@@ -142,5 +148,5 @@ async function getGlobal(): Promise<Note[]> {
  * notes 为只读语义(请勿直接改写;变更一律走 create/update/remove)。
  */
 export function useNotes() {
-  return { notes, enabled, create, update, remove, getByPage, getGlobal };
+  return { notes, enabled, setEnabled, create, update, remove, getByPage, getGlobal };
 }
