@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCss,
   collectStylesFor,
-  expandDomain,
   matchPatternToRegExp,
   matchingStyles,
 } from '../matcher';
+// expandDomain 已下沉 shared/patterns(#13 user-scripts 复用)
+import { expandDomain } from '@/shared/patterns';
 import type { CustomStyle } from '../types';
 
 function style(over: Partial<CustomStyle>): CustomStyle {

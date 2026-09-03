@@ -35,13 +35,6 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** 裸域名展开为「精确 + 子domain」两条 pattern;不是域名就原样保留(当完整 pattern 用) */
-export function expandDomain(domain: string): string[] {
-  const host = domain.trim().replace(/^\.+|\.+$/g, '').toLowerCase();
-  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)) return [domain.trim()];
-  return [`*://${host}/*`, `*://*.${host}/*`];
-}
-
 /** 命中 url 的全部样式(不论 enabled),顺序 = 入参列表顺序 */
 export function matchingStyles(styles: CustomStyle[], url: string): CustomStyle[] {
   return styles.filter((s) => matchesAny(s.patterns, url));

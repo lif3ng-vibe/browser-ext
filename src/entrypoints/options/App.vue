@@ -4,6 +4,7 @@ import ThemeSettingsBlock from '@/features/settings/components/ThemeSettingsBloc
 import EditorSettingsBlock from '@/features/settings/components/EditorSettingsBlock.vue';
 import ManageStylesBlock from '@/features/custom-styles/components/ManageStylesBlock.vue';
 import NotesSettingsBlock from '@/features/notes/components/NotesSettingsBlock.vue';
+import ManageUserScriptsBlock from '@/features/user-scripts/components/ManageUserScriptsBlock.vue';
 </script>
 
 <template>
@@ -16,6 +17,7 @@ import NotesSettingsBlock from '@/features/notes/components/NotesSettingsBlock.v
       <EditorSettingsBlock />
       <ManageStylesBlock />
       <NotesSettingsBlock />
+      <ManageUserScriptsBlock />
     </div>
   </main>
 </template>

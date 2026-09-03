@@ -132,7 +132,7 @@ _Avoid_: 全局一刀切(时机错了脚本直接废)
 _Avoid_: "即时生效"(JS 跑过就是跑过了,无法撤销执行)、SPA 软导航重跑(脚本自己监听换页)
 
 **注册表(Registry)**:
-平台 userScripts API 里的已注册脚本集合,纯派生态:storage 唯一事实源,启动与变更时全量重建(`persistAcrossSessions: false`),随时可弃可重建。
+平台 userScripts API 里的已注册脚本集合,纯派生态:storage 唯一事实源,启动与变更时全量重建,随时可弃可重建。(注册项无 persistAcrossSessions 字段——Chrome 实测拒绝该属性;「不自持」由 background 启动全量重建保证。)
 _Avoid_: 让注册表当第二事实源、差量同步漂移
 
 ### 决策留痕

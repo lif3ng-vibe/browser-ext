@@ -5,7 +5,7 @@ import { useDebounceFn } from '@vueuse/core';
 import CodeEditor from '@/shared/editor/CodeEditor.vue';
 import { useCustomStyles } from '../store';
 import { useActiveTab } from '@/shared/useActiveTab';
-import { expandDomain } from '../matcher';
+import { parsePatternsText } from '@/shared/patterns';
 import { isPreviewable, usePreviewSession } from '../previewSession';
 import type { CustomStyle } from '../types';
 import { Button } from '@/shared/ui/button';
@@ -19,20 +19,11 @@ const name = ref(props.record.name);
 const patternsText = ref(props.record.patterns.join('\n'));
 const code = ref(props.record.code);
 
-// 裸域名 → 精确+子域 两条 pattern;完整 pattern 原样保留
-function parsePatterns(text: string): string[] {
-  const out: string[] = [];
-  for (const line of text.split('\n').map((l) => l.trim()).filter(Boolean)) {
-    out.push(...expandDomain(line));
-  }
-  return [...new Set(out)];
-}
-
 const dirty = computed(
   () =>
     name.value !== props.record.name ||
     code.value !== props.record.code ||
-    JSON.stringify(parsePatterns(patternsText.value)) !== JSON.stringify(props.record.patterns),
+    JSON.stringify(parsePatternsText(patternsText.value)) !== JSON.stringify(props.record.patterns),
 );
 
 // 编辑对象切换(外层 record 变了)→ 表单重置
@@ -58,14 +49,10 @@ async function save() {
   await store.update(props.record.id, {
     name: name.value || '未命名样式',
     code: code.value,
-    patterns: parsePatterns(patternTextSafe()),
+    patterns: parsePatternsText(patternsText.value),
   });
   // 保存语义:先持久化,后释放预览(storage watch 落地前可能有毫秒级回闪,issue #16 Q4)
   await preview.release();
-}
-
-function patternTextSafe(): string {
-  return patternsText.value;
 }
 
 async function back() {
