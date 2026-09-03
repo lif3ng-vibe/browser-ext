@@ -19,13 +19,22 @@ const pageNotes = ref<Note[]>([]);
 const pageGhosts = ref<Note[]>([]);
 const displayPageNotes = computed(() => [...pageNotes.value, ...pageGhosts.value]);
 
-let lastPageUrl: string | undefined;
+/** 换页判定键:活动 tab URL 去 hash(镜像 store 的归一化规则,仅此一处本地比较用;
+ *  绑定键本身仍由 store 归一化,消费方拿到的便签 url 字段永远是归一化产物) */
+const pageKey = computed(() => {
+  const url = activeTab.value?.url;
+  if (!url) return undefined;
+  const i = url.indexOf('#');
+  return i === -1 ? url : url.slice(0, i);
+});
+
+let lastPageKey: string | undefined;
 
 async function requeryPage() {
   const url = activeTab.value?.url;
-  // 换页:幽灵退役(NoteCard 先例——幽灵只属于创建它的页面,切页即从未存在)
-  if (url !== lastPageUrl) pageGhosts.value = [];
-  lastPageUrl = url;
+  // 换页(归一化键变化):幽灵退役(NoteCard 先例——幽灵只属于创建它的页面)
+  if (pageKey.value !== lastPageKey) pageGhosts.value = [];
+  lastPageKey = pageKey.value;
   pageNotes.value = url ? await store.getByPage(url) : [];
   // 幽灵晋升后同 id 已在 storage:从乐观列表退役
   pageGhosts.value = pageGhosts.value.filter((g) => !pageNotes.value.some((n) => n.id === g.id));
@@ -111,7 +120,6 @@ function retireGlobalGhost(id: string) {
         </p>
       </div>
       <Button
-        v-if="!displayPageNotes.length"
         variant="outline"
         :disabled="!activeTab?.url"
         aria-label="新建页面便签"

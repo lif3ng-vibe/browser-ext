@@ -78,7 +78,7 @@ describe('NotesTab 完全体:本页主视图 + 全局分区 + 空态引导(issue
     expect(stored[0]!.text).toBe('页面便签');
   });
 
-  it('本页有便签时:列表照常展示,不出现空态引导', async () => {
+  it('本页有便签时:列表照常展示,不出现空态引导,「新建页面便签」仍可用(#21 故事 4:同页多条)', async () => {
     await seedActiveTab('https://a.com/p');
     const a = note({ id: 'a', url: 'https://a.com/p', text: '已有的' });
     const { NotesTab } = await freshFixture([a]);
@@ -88,6 +88,13 @@ describe('NotesTab 完全体:本页主视图 + 全局分区 + 空态引导(issue
 
     expect(wrapper.text()).not.toContain('此页无便签');
     expect(textareas(wrapper).map((t) => (t.element as HTMLTextAreaElement).value)).toEqual(['已有的']);
+
+    // 新建按钮常驻(NoteCard 同款):本页有便签也能再加一条
+    const newBtn = wrapper.findAll('button').find((b) => b.text() === '新建页面便签');
+    expect(newBtn, '新建页面便签按钮应常驻').toBeDefined();
+    await newBtn!.trigger('click');
+    await flushPromises();
+    expect(pageTextareas(wrapper)).toHaveLength(2); // 已有 1 + 幽灵 1
   });
 
   it('列出本页便签(updatedAt 倒序),别页/全局便签不出现', async () => {
@@ -165,6 +172,31 @@ describe('NotesTab 完全体:本页主视图 + 全局分区 + 空态引导(issue
     expect(textareas(wrapper).map((t) => (t.element as HTMLTextAreaElement).value)).toEqual(['另一页的']);
   });
 
+  it('active tab 切换(两 tab 间切换,onActivated 路径)→ 本页列表跟随', async () => {
+    await fakeBrowser.windows.create({ focused: true });
+    const tabA = (await fakeBrowser.tabs.create({ url: 'https://a.com/p', active: true })).id!;
+    const tabB = (await fakeBrowser.tabs.create({ url: 'https://b.com/q', active: false })).id!;
+    const a = note({ id: 'a', url: 'https://a.com/p', text: 'A页的' });
+    const b = note({ id: 'b', url: 'https://b.com/q', text: 'B页的' });
+    const { NotesTab } = await freshFixture([a, b]);
+    const wrapper = mount(NotesTab);
+    await flushPromises();
+    await wait(50);
+    expect(pageTextareas(wrapper)).toEqual(['A页的']);
+
+    // 激活另一 tab(不换 URL,纯 onActivated 路径)
+    await fakeBrowser.tabs.update(tabB, { active: true });
+    await flushPromises();
+    await wait(50);
+    expect(pageTextareas(wrapper)).toEqual(['B页的']);
+
+    // 切回 A
+    await fakeBrowser.tabs.update(tabA, { active: true });
+    await flushPromises();
+    await wait(50);
+    expect(pageTextareas(wrapper)).toEqual(['A页的']);
+  });
+
   it('切 tab:本页幽灵退役(NoteCard 先例:幽灵只属于创建它的页面),全局分区不受影响', async () => {
     const tabId = await seedActiveTab('https://a.com/p');
     const g = note({ id: 'g', url: null, text: '全局的' });
@@ -189,6 +221,34 @@ describe('NotesTab 完全体:本页主视图 + 全局分区 + 空态引导(issue
     await flushPromises();
     await wait(50);
     expect(globalTextareas(wrapper)).toEqual(['全局的']);
+  });
+
+  it('hash 跳转是同页:已建的幽灵不退役(换页判定按归一化键)', async () => {
+    const tabId = await seedActiveTab('https://a.com/p');
+    const { NotesTab } = await freshFixture([]);
+    const wrapper = mount(NotesTab);
+    await flushPromises();
+    await wait(50);
+
+    await wrapper.findAll('button').find((b) => b.text() === '新建页面便签')!.trigger('click');
+    await flushPromises();
+    expect(pageTextareas(wrapper)).toHaveLength(1);
+
+    // 锚点跳转(#x):规格 Q2「锚点跳转不失签」,幽灵同样不退役
+    await fakeBrowser.tabs.update(tabId, { url: 'https://a.com/p#x' });
+    await flushPromises();
+    await wait(50);
+    expect(pageTextareas(wrapper)).toHaveLength(1);
+
+    // 再切 hash(#y)仍同页;真换页才退役
+    await fakeBrowser.tabs.update(tabId, { url: 'https://a.com/p#y' });
+    await flushPromises();
+    await wait(50);
+    expect(pageTextareas(wrapper)).toHaveLength(1);
+    await fakeBrowser.tabs.update(tabId, { url: 'https://b.com/q' });
+    await flushPromises();
+    await wait(50);
+    expect(pageTextareas(wrapper)).toHaveLength(0);
   });
 
   it('hash 差异同页:查询命中同一条(归一化是 store 职责)', async () => {
