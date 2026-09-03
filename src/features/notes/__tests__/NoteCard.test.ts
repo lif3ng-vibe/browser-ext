@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import type { Note } from '../types';
 
+// 首个用例要支付一次性模块图编译开销(vi.resetModules 后动态导入组件树),
+// 默认 5s 在高负载机器上偶发超时;仅本文件放宽到 15s(与 NoteEditor.test.ts 同款先例)
+vi.setConfig({ testTimeout: 15_000 });
+
 // 组件与 store 共用同一份 fresh 模块注册表(vi.resetModules 后先后 import 即同一实例)
 async function freshFixture(seeded: Note[]) {
   vi.resetModules();
